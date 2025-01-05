@@ -3,12 +3,13 @@
 use std::{
     collections::HashMap,
     env,
-    io::{self, IsTerminal, Read},
+    io::{self, IsTerminal, Read, Write},
+    process,
 };
 
-use anyhow::{Context, Result};
+use anyhow::{bail, Result};
 use clap::Parser;
-use v8::CreateParams;
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 /// Evaluate a JavaScript function and print the result.
 #[derive(Parser)]
@@ -36,24 +37,21 @@ struct Args {
 
 // Evaluate the given source, with the given vars in scope.
 fn eval(vars: &HashMap<String, String>, source: &str) -> Result<String> {
-    fn v8_string<'s>(
-        scope: &mut v8::HandleScope<'s, ()>,
-        s: &str,
-    ) -> Result<v8::Local<'s, v8::String>> {
-        v8::String::new(scope, s).context("constructing string")
+    fn v8_string<'s>(scope: &mut v8::HandleScope<'s, ()>, s: &str) -> v8::Local<'s, v8::String> {
+        v8::String::new(scope, s).expect("constructing string")
     }
 
     let platform = v8::new_default_platform(0, false).make_shared();
     v8::V8::initialize_platform(platform);
     v8::V8::initialize();
-    let mut isolate = v8::Isolate::new(CreateParams::default());
+    let mut isolate = v8::Isolate::new(v8::CreateParams::default());
 
     let mut scope = v8::HandleScope::new(&mut isolate);
     let object_template = v8::ObjectTemplate::new(&mut scope);
     for (k, v) in vars {
         object_template.set(
-            v8_string(&mut scope, k)?.into(),
-            v8_string(&mut scope, v)?.into(),
+            v8_string(&mut scope, k).into(),
+            v8_string(&mut scope, v).into(),
         );
     }
     let context = v8::Context::new(
@@ -64,13 +62,23 @@ fn eval(vars: &HashMap<String, String>, source: &str) -> Result<String> {
             microtask_queue: None,
         },
     );
-
     let mut scope = v8::ContextScope::new(&mut scope, context);
-    let source = v8_string(&mut scope, source)?;
-    let script = v8::Script::compile(&mut scope, source, None).context("compiling script")?;
-    let res = script.run(&mut scope).context("running script")?;
+    let mut scope = v8::TryCatch::new(&mut scope);
 
-    Ok(res.to_rust_string_lossy(&mut scope))
+    let source = v8_string(&mut scope, source);
+    let script = v8::Script::compile(&mut scope, source, None);
+    if let Some(exception) = scope.exception() {
+        bail!("{}", exception.to_rust_string_lossy(&mut scope))
+    }
+
+    let res = script.expect("compiling script").run(&mut scope);
+    if let Some(exception) = scope.exception() {
+        bail!("{}", exception.to_rust_string_lossy(&mut scope))
+    }
+
+    Ok(res
+        .expect("running script")
+        .to_rust_string_lossy(&mut scope))
 }
 
 fn vars() -> Result<HashMap<String, String>> {
@@ -91,24 +99,37 @@ fn vars() -> Result<HashMap<String, String>> {
 }
 
 fn source(args: &Args) -> String {
-    let mut source = format!("(() => {})()", args.body);
-    if args.stringify {
-        source = format!("JSON.stringify({source}, null, 2)");
-    }
-    if args.parse {
-        source = format!("$ = JSON.parse($); {source}");
-    }
-    source
+    format!(
+        "(() => {{ {} const res = (() => {})(); return {}; }})()",
+        if args.parse { "$ = JSON.parse($);" } else { "" },
+        args.body,
+        if args.stringify {
+            "JSON.stringify(res, null, 2)"
+        } else {
+            "res"
+        },
+    )
 }
 
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    let res = eval(&vars()?, &source(&args))?;
-    if res.ends_with('\n') {
-        print!("{res}");
-    } else {
-        println!("{res}");
+    match eval(&vars()?, &source(&args)) {
+        Ok(res) => {
+            if res.ends_with('\n') {
+                print!("{res}");
+            } else {
+                println!("{res}");
+            }
+        }
+        Err(err) => {
+            let mut stderr = StandardStream::stderr(ColorChoice::Auto);
+            stderr.set_color(ColorSpec::new().set_fg(Some(Color::Red)).set_bold(true))?;
+            write!(&mut stderr, "error")?;
+            stderr.reset()?;
+            writeln!(&mut stderr, ": {err}")?;
+            process::exit(1);
+        }
     }
 
     Ok(())
