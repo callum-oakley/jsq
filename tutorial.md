@@ -54,9 +54,9 @@ commit, the GitHub API includes information about "parent" commits. There can be
 ```
 "parents": [
   {
-    "sha": "4acd103768b307907f1d334eeed97674c732f067",
-    "url": "https://api.github.com/repos/callum-oakley/fn/commits/4acd103768b307907f1d334eeed97674c732f067",
-    "html_url": "https://github.com/callum-oakley/fn/commit/4acd103768b307907f1d334eeed97674c732f067"
+    "sha": "66ec47a4f84d3ab2dfe95595a57461fa4d19f8d6",
+    "url": "https://api.github.com/repos/callum-oakley/fn/commits/66ec47a4f84d3ab2dfe95595a57461fa4d19f8d6",
+    "html_url": "https://github.com/callum-oakley/fn/commit/66ec47a4f84d3ab2dfe95595a57461fa4d19f8d6"
   }
 ]
 ```
