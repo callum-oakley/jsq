@@ -7,7 +7,7 @@ use std::{
     process,
 };
 
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use clap::Parser;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
@@ -37,8 +37,11 @@ struct Args {
 
 // Evaluate the given source, with the given vars in scope.
 fn eval(vars: &HashMap<String, String>, source: &str) -> Result<String> {
-    fn v8_string<'s>(scope: &mut v8::HandleScope<'s, ()>, s: &str) -> v8::Local<'s, v8::String> {
-        v8::String::new(scope, s).expect("constructing string")
+    fn v8_string<'s>(
+        scope: &mut v8::HandleScope<'s, ()>,
+        s: &str,
+    ) -> Result<v8::Local<'s, v8::String>> {
+        v8::String::new(scope, s).context("constructing string")
     }
 
     let platform = v8::new_default_platform(0, false).make_shared();
@@ -50,8 +53,8 @@ fn eval(vars: &HashMap<String, String>, source: &str) -> Result<String> {
     let object_template = v8::ObjectTemplate::new(&mut scope);
     for (k, v) in vars {
         object_template.set(
-            v8_string(&mut scope, k).into(),
-            v8_string(&mut scope, v).into(),
+            v8_string(&mut scope, k)?.into(),
+            v8_string(&mut scope, v)?.into(),
         );
     }
     let context = v8::Context::new(
@@ -65,19 +68,19 @@ fn eval(vars: &HashMap<String, String>, source: &str) -> Result<String> {
     let mut scope = v8::ContextScope::new(&mut scope, context);
     let mut scope = v8::TryCatch::new(&mut scope);
 
-    let source = v8_string(&mut scope, source);
+    let source = v8_string(&mut scope, source)?;
     let script = v8::Script::compile(&mut scope, source, None);
     if let Some(exception) = scope.exception() {
         bail!("{}", exception.to_rust_string_lossy(&mut scope))
     }
 
-    let res = script.expect("compiling script").run(&mut scope);
+    let res = script.context("compiling script")?.run(&mut scope);
     if let Some(exception) = scope.exception() {
         bail!("{}", exception.to_rust_string_lossy(&mut scope))
     }
 
     Ok(res
-        .expect("running script")
+        .context("running script")?
         .to_rust_string_lossy(&mut scope))
 }
 
@@ -111,26 +114,28 @@ fn source(args: &Args) -> String {
     )
 }
 
-fn main() -> Result<()> {
+fn try_main() -> Result<()> {
     let args = Args::parse();
 
-    match eval(&vars()?, &source(&args)) {
-        Ok(res) => {
-            if res.ends_with('\n') {
-                print!("{res}");
-            } else {
-                println!("{res}");
-            }
-        }
-        Err(err) => {
-            let mut stderr = StandardStream::stderr(ColorChoice::Auto);
-            stderr.set_color(ColorSpec::new().set_fg(Some(Color::Red)).set_bold(true))?;
-            write!(&mut stderr, "error")?;
-            stderr.reset()?;
-            writeln!(&mut stderr, ": {err}")?;
-            process::exit(1);
-        }
+    let res = eval(&vars()?, &source(&args))?;
+    if res.ends_with('\n') {
+        print!("{res}");
+    } else {
+        println!("{res}");
     }
 
     Ok(())
+}
+
+fn main() {
+    if let Err(err) = try_main() {
+        let mut stderr = StandardStream::stderr(ColorChoice::Auto);
+        stderr
+            .set_color(ColorSpec::new().set_fg(Some(Color::Red)).set_bold(true))
+            .expect("setting color");
+        write!(&mut stderr, "error").expect("writing to stderr");
+        stderr.reset().expect("resetting color");
+        writeln!(&mut stderr, ": {err}").expect("writing to stderr");
+        process::exit(1);
+    }
 }
