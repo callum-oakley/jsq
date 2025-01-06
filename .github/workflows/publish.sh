@@ -15,6 +15,4 @@ if [ "${version}" = "${newest_version}" ]; then
   exit
 fi
 
-git tag -a "${version}" -m "${version}"
-git push --tags
 cargo publish
