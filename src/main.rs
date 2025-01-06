@@ -30,7 +30,7 @@ struct Args {
     #[arg(short, long)]
     stringify: bool,
 
-    /// The BODY of the JavaScript function to be evaluated.
+    /// The body of the JavaScript function to be evaluated.
     #[arg(default_value("$"))]
     body: String,
 }

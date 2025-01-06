@@ -10,7 +10,7 @@ Evaluate a JavaScript function and print the result
 Usage: fn [OPTIONS] [BODY]
 
 Arguments:
-  [BODY]  The BODY of the JavaScript function to be evaluated [default: $]
+  [BODY]  The body of the JavaScript function to be evaluated [default: $]
 
 Options:
   -p, --parse      JSON.parse STDIN before passing it to the function
