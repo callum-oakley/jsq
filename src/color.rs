@@ -73,6 +73,6 @@ pub fn print_json(s: &str) -> Result<()> {
 pub fn print_error(err: &Error) -> Result<()> {
     let mut stderr = StandardStream::stderr(ColorChoice::Auto);
     write_with_color!(&mut stderr, ERR, "error")?;
-    writeln!(&mut stderr, ": {err}")?;
+    writeln!(&mut stderr, ": {err:#}")?;
     Ok(())
 }

@@ -4,7 +4,6 @@ mod color;
 mod v8;
 
 use std::{
-    collections::HashMap,
     env,
     io::{self, IsTerminal, Read},
     process,
@@ -39,40 +38,25 @@ struct Args {
     body: String,
 }
 
-fn script(args: &Args) -> String {
-    format!(
-        "(() => {{ {} const res = (() => {})(); return {}; }})()",
-        if args.parse { "$ = JSON.parse($);" } else { "" },
-        args.body,
-        if args.stringify {
-            format!("JSON.stringify(res, null, {TAB_WIDTH})")
-        } else {
-            String::from("res")
-        },
-    )
-}
+fn try_main() -> Result<()> {
+    let args = Args::parse();
 
-fn vars() -> Result<HashMap<String, String>> {
-    let mut vars = HashMap::new();
+    let mut options = v8::Options {
+        body: &args.body,
+        env: env::vars(),
+        parse: args.parse,
+        stdin: None,
+        stringify: args.stringify,
+    };
 
     let mut stdin = io::stdin();
     if !stdin.is_terminal() {
         let mut buf = String::new();
         stdin.read_to_string(&mut buf)?;
-        vars.insert(String::from("$"), buf);
+        options.stdin = Some(buf);
     }
 
-    for (k, v) in env::vars() {
-        vars.insert(format!("${k}"), v);
-    }
-
-    Ok(vars)
-}
-
-fn try_main() -> Result<()> {
-    let args = Args::parse();
-
-    let res = v8::eval(&script(&args), &vars()?)?;
+    let res = v8::eval(options)?;
     if args.stringify && io::stdout().is_terminal() {
         color::print_json(&res)?;
     } else if res.ends_with('\n') {
