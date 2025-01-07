@@ -5,11 +5,17 @@ use std::{
     env,
     io::{self, IsTerminal, Read, Write},
     process,
+    str::FromStr,
 };
 
 use anyhow::{bail, Context, Result};
 use clap::Parser;
+use serde_json::Value;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
+
+const TAB_WIDTH: usize = 2;
+const KEY_COLOR: Color = Color::Blue;
+const STRING_COLOR: Color = Color::Green;
 
 /// Evaluate a JavaScript function and print the result.
 #[derive(Parser)]
@@ -107,18 +113,80 @@ fn source(args: &Args) -> String {
         if args.parse { "$ = JSON.parse($);" } else { "" },
         args.body,
         if args.stringify {
-            "JSON.stringify(res, null, 2)"
+            format!("JSON.stringify(res, null, {TAB_WIDTH})")
         } else {
-            "res"
+            String::from("res")
         },
     )
+}
+
+fn print_highlighted(s: &str) -> Result<()> {
+    fn write_value(stdout: &mut StandardStream, depth: usize, value: &Value) -> Result<()> {
+        match value {
+            Value::Array(arr) => {
+                if arr.is_empty() {
+                    write!(stdout, "[]")?;
+                } else {
+                    writeln!(stdout, "[")?;
+                    for (i, e) in arr.iter().enumerate() {
+                        write!(stdout, "{}", " ".repeat((depth + 1) * TAB_WIDTH))?;
+                        write_value(stdout, depth + 1, e)?;
+                        if i == arr.len() - 1 {
+                            writeln!(stdout)?;
+                        } else {
+                            writeln!(stdout, ",")?;
+                        }
+                    }
+                    write!(stdout, "{}]", " ".repeat(depth * TAB_WIDTH))?;
+                }
+            }
+            Value::Object(obj) => {
+                if obj.is_empty() {
+                    write!(stdout, "{{}}")?;
+                } else {
+                    writeln!(stdout, "{{")?;
+                    for (i, (k, v)) in obj.iter().enumerate() {
+                        stdout.set_color(ColorSpec::new().set_fg(Some(KEY_COLOR)))?;
+                        write!(
+                            stdout,
+                            "{}{}",
+                            " ".repeat((depth + 1) * TAB_WIDTH),
+                            Value::String(k.clone()),
+                        )?;
+                        stdout.reset()?;
+                        write!(stdout, ": ")?;
+                        write_value(stdout, depth + 1, v)?;
+                        if i == obj.len() - 1 {
+                            writeln!(stdout)?;
+                        } else {
+                            writeln!(stdout, ",")?;
+                        }
+                    }
+                    write!(stdout, "{}]", " ".repeat(depth * TAB_WIDTH))?;
+                }
+            }
+            Value::String(_) => {
+                stdout.set_color(ColorSpec::new().set_fg(Some(STRING_COLOR)))?;
+                write!(stdout, "{value}")?;
+                stdout.reset()?;
+            }
+            _ => write!(stdout, "{value}")?,
+        }
+        Ok(())
+    }
+    let mut stdout = StandardStream::stdout(ColorChoice::Auto);
+    write_value(&mut stdout, 0, &Value::from_str(s)?)?;
+    writeln!(&mut stdout)?;
+    Ok(())
 }
 
 fn try_main() -> Result<()> {
     let args = Args::parse();
 
     let res = eval(&vars()?, &source(&args))?;
-    if res.ends_with('\n') {
+    if args.stringify && io::stdout().is_terminal() {
+        print_highlighted(&res)?;
+    } else if res.ends_with('\n') {
         print!("{res}");
     } else {
         println!("{res}");
