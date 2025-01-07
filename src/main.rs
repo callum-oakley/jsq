@@ -146,13 +146,9 @@ fn print_highlighted(s: &str) -> Result<()> {
                 } else {
                     writeln!(stdout, "{{")?;
                     for (i, (k, v)) in obj.iter().enumerate() {
+                        write!(stdout, "{}", " ".repeat((depth + 1) * TAB_WIDTH))?;
                         stdout.set_color(ColorSpec::new().set_fg(Some(KEY_COLOR)))?;
-                        write!(
-                            stdout,
-                            "{}{}",
-                            " ".repeat((depth + 1) * TAB_WIDTH),
-                            Value::String(k.clone()),
-                        )?;
+                        write!(stdout, "{}", Value::String(k.clone()))?;
                         stdout.reset()?;
                         write!(stdout, ": ")?;
                         write_value(stdout, depth + 1, v)?;
