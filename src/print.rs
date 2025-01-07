@@ -8,6 +8,8 @@ use anyhow::{Error, Result};
 use serde_json::Value;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
+const TAB_WIDTH: usize = 2;
+
 fn normal(color: Color) -> ColorSpec {
     let mut spec = ColorSpec::new();
     spec.set_fg(Some(color));
@@ -38,10 +40,10 @@ pub fn json(s: &str) -> Result<()> {
             Value::Array(arr) => {
                 write!(w, "[")?;
                 for (i, e) in arr.iter().enumerate() {
-                    write!(w, "\n{}", " ".repeat((depth + 1) * crate::TAB_WIDTH))?;
+                    write!(w, "\n{}", " ".repeat((depth + 1) * TAB_WIDTH))?;
                     write_value(w, depth + 1, e)?;
                     if i == arr.len() - 1 {
-                        write!(w, "\n{}", " ".repeat(depth * crate::TAB_WIDTH))?;
+                        write!(w, "\n{}", " ".repeat(depth * TAB_WIDTH))?;
                     } else {
                         write!(w, ",")?;
                     }
@@ -51,12 +53,12 @@ pub fn json(s: &str) -> Result<()> {
             Value::Object(obj) => {
                 write!(w, "{{")?;
                 for (i, (k, v)) in obj.iter().enumerate() {
-                    write!(w, "\n{}", " ".repeat((depth + 1) * crate::TAB_WIDTH))?;
+                    write!(w, "\n{}", " ".repeat((depth + 1) * TAB_WIDTH))?;
                     write_with_color!(w, KEY, "{}", Value::String(k.clone()))?;
                     write!(w, ": ")?;
                     write_value(w, depth + 1, v)?;
                     if i == obj.len() - 1 {
-                        write!(w, "\n{}", " ".repeat(depth * crate::TAB_WIDTH))?;
+                        write!(w, "\n{}", " ".repeat(depth * TAB_WIDTH))?;
                     } else {
                         write!(w, ",")?;
                     }

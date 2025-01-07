@@ -12,8 +12,6 @@ use std::{
 use anyhow::Result;
 use clap::Parser;
 
-pub const TAB_WIDTH: usize = 2;
-
 /// Evaluate a JavaScript function and print the result.
 #[derive(Parser)]
 #[command(
