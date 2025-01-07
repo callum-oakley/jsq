@@ -1,4 +1,8 @@
-use std::{io::Write, str::FromStr, sync::LazyLock};
+use std::{
+    io::{self, IsTerminal, Write},
+    str::FromStr,
+    sync::LazyLock,
+};
 
 use anyhow::{Error, Result};
 use serde_json::Value;
@@ -28,7 +32,7 @@ macro_rules! write_with_color {
     };
 }
 
-pub fn print_json(s: &str) -> Result<()> {
+pub fn json(s: &str) -> Result<()> {
     fn write_value(w: &mut impl WriteColor, depth: usize, value: &Value) -> Result<()> {
         match value {
             Value::Array(arr) => {
@@ -64,14 +68,22 @@ pub fn print_json(s: &str) -> Result<()> {
         }
         Ok(())
     }
-    let mut stdout = StandardStream::stdout(ColorChoice::Auto);
+    let mut stdout = StandardStream::stdout(if io::stdout().is_terminal() {
+        ColorChoice::Auto
+    } else {
+        ColorChoice::Never
+    });
     write_value(&mut stdout, 0, &Value::from_str(s)?)?;
     writeln!(&mut stdout)?;
     Ok(())
 }
 
-pub fn print_error(err: &Error) -> Result<()> {
-    let mut stderr = StandardStream::stderr(ColorChoice::Auto);
+pub fn error(err: &Error) -> Result<()> {
+    let mut stderr = StandardStream::stderr(if io::stderr().is_terminal() {
+        ColorChoice::Auto
+    } else {
+        ColorChoice::Never
+    });
     write_with_color!(&mut stderr, ERR, "error")?;
     writeln!(&mut stderr, ": {err:#}")?;
     Ok(())

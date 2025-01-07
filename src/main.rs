@@ -1,6 +1,6 @@
 #![warn(clippy::pedantic)]
 
-mod color;
+mod print;
 mod v8;
 
 use std::{
@@ -57,8 +57,8 @@ fn try_main() -> Result<()> {
     }
 
     let res = v8::eval(options)?;
-    if args.stringify && io::stdout().is_terminal() {
-        color::print_json(&res)?;
+    if args.stringify {
+        print::json(&res)?;
     } else if res.ends_with('\n') {
         print!("{res}");
     } else {
@@ -70,7 +70,7 @@ fn try_main() -> Result<()> {
 
 fn main() {
     if let Err(err) = try_main() {
-        color::print_error(&err).expect("printing error");
+        print::error(&err).expect("printing error");
         process::exit(1);
     }
 }
