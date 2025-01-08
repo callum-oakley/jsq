@@ -20,6 +20,7 @@ pub struct Options<'a, I> {
 }
 
 pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Result<String> {
+    v8::V8::set_flags_from_string("--use-strict");
     let platform = v8::new_default_platform(0, false).make_shared();
     v8::V8::initialize_platform(platform);
     v8::V8::initialize();

@@ -59,7 +59,7 @@ Environment variables are available in `BODY` prefixed by `$`. e.g. `USER` is av
 
 ## Why?
 
-JavaScript is a convenient language to use to process JSON (which stands for "JavaScript Object
+JavaScript is a convenient language with which to process JSON (which stands for "JavaScript Object
 Notation" after all), but the boilerplate of reading from STDIN, parsing, and writing to STDOUT
 makes many could-be "one-liners" significantly more involved than they need to be. fn provides a
 thin wrapper around V8 which handles this boilerplate and makes it more ergonomic to sprinkle a
