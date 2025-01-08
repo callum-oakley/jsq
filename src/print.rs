@@ -4,7 +4,7 @@ use std::{
     sync::LazyLock,
 };
 
-use anyhow::{Error, Result};
+use anyhow::{Context, Error, Result};
 use serde_json::Value;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
@@ -70,12 +70,15 @@ pub fn json(s: &str) -> Result<()> {
         }
         Ok(())
     }
+
     let mut stdout = StandardStream::stdout(if io::stdout().is_terminal() {
         ColorChoice::Auto
     } else {
         ColorChoice::Never
     });
-    write_value(&mut stdout, 0, &Value::from_str(s)?)?;
+
+    let value = Value::from_str(s).context("parsing JSON")?;
+    write_value(&mut stdout, 0, &value)?;
     writeln!(&mut stdout)?;
     Ok(())
 }

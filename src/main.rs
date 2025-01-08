@@ -55,7 +55,8 @@ fn try_main() -> Result<()> {
     }
 
     let res = v8::eval(options)?;
-    if args.stringify {
+    // JSON.stringify can return undefined, which isn't JSON, so don't try to highlight it.
+    if args.stringify && res != "undefined" {
         print::json(&res)?;
     } else if res.ends_with('\n') {
         print!("{res}");
