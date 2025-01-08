@@ -26,36 +26,12 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
     let mut isolate = v8::Isolate::new(v8::CreateParams::default());
     let mut scope = v8::HandleScope::new(&mut isolate);
 
-    let context = v8::Context::new(&mut scope, v8::ContextOptions::default());
-    let mut scope = v8::ContextScope::new(&mut scope, context);
-    let mut scope = v8::TryCatch::new(&mut scope);
-
     let object_template = v8::ObjectTemplate::new(&mut scope);
     for (k, v) in options.env {
         object_template.set(
             string(&mut scope, &format!("${k}"))?.into(),
             string(&mut scope, &v)?.into(),
         );
-    }
-
-    if let Some(stdin) = options.stdin {
-        let stdin = string(&mut scope, &stdin)?;
-        if options.parse {
-            let value =
-                with_catch!(scope, v8::json::parse(&mut scope, stdin)).context("parsing STDIN")?;
-            object_template.set_accessor_with_configuration(
-                string(&mut scope, "$")?.into(),
-                v8::AccessorConfiguration::new(
-                    |_: &mut v8::HandleScope,
-                     _: v8::Local<v8::Name>,
-                     args: v8::PropertyCallbackArguments,
-                     mut rv: v8::ReturnValue<v8::Value>| rv.set(args.data()),
-                )
-                .data(value),
-            );
-        } else {
-            object_template.set(string(&mut scope, "$")?.into(), stdin.into());
-        }
     }
 
     let context = v8::Context::new(
@@ -68,11 +44,30 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
     let mut scope = v8::ContextScope::new(&mut scope, context);
     let mut scope = v8::TryCatch::new(&mut scope);
 
-    let script = string(&mut scope, &format!("(() => {})()", options.body))?;
+    let undefined = v8::undefined(&mut scope);
+
+    let stdin: v8::Local<v8::Value> = if let Some(s) = options.stdin {
+        let s = string(&mut scope, &s)?;
+        if options.parse {
+            with_catch!(scope, v8::json::parse(&mut scope, s)).context("parsing STDIN")?
+        } else {
+            s.into()
+        }
+    } else {
+        undefined.into()
+    };
+
+    let script = string(&mut scope, &format!("$ => {}", options.body))?;
     let script = with_catch!(scope, v8::Script::compile(&mut scope, script, None))
         .context("compiling script")?;
 
-    let mut res = with_catch!(scope, script.run(&mut scope)).context("running script")?;
+    let f = with_catch!(scope, script.run(&mut scope))
+        .context("running script")?
+        .try_cast::<v8::Function>()?;
+
+    let mut res = with_catch!(scope, f.call(&mut scope, undefined.into(), &[stdin]))
+        .context("evaluating function")?;
+
     if options.stringify {
         res = with_catch!(scope, v8::json::stringify(&mut scope, res))
             .context("stringifying JSON")?
