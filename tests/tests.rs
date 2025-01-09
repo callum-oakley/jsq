@@ -128,7 +128,5 @@ fn test() -> Result<()> {
         err("error: parsing STDIN: SyntaxError: Unexpected token 'o', \"foo\" is not valid JSON\n")
     );
 
-    panic!("intentionally fail");
-
     Ok(())
 }
