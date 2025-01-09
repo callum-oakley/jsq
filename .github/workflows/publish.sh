@@ -1,6 +1,8 @@
 #!/bin/sh
 
-cargo install fn
+cargo test || exit 1
+
+cargo install --path .
 
 version=$(cat Cargo.toml | fn '$.match(/version = "(\d+\.\d+\.\d+)"/)[1]')
 
