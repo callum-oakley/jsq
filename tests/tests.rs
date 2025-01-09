@@ -80,7 +80,7 @@ fn test() -> Result<()> {
         ok("25\n")
     );
 
-    assert_eq!(run(&["-ps"], None, [])?, ok("undefined\n"));
+    assert_eq!(run(&["-s", "undefined"], None, [])?, ok("undefined\n"));
 
     assert_eq!(
         run(&["-ps", "$.foo"], Some(r#"{ "foo": 42 }"#), [])?,
@@ -102,7 +102,7 @@ fn test() -> Result<()> {
     );
 
     assert_eq!(
-        run(&["-ps", "({ a: {}, b: [] })"], None, [])?,
+        run(&["-s", "({ a: {}, b: [] })"], None, [])?,
         ok("{\n  \"a\": {},\n  \"b\": []\n}\n")
     );
 
