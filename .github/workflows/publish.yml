@@ -51,7 +51,7 @@ jobs:
     needs: [get-version, release-create]
     strategy:
       matrix:
-        includes:
+        include:
           - os: linux
             runs-on: ubuntu-latest
           - os: macos
