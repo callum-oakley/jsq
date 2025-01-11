@@ -4,7 +4,14 @@ on:
       - main
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy: &strategy
+      matrix:
+        includes:
+          - runs-on: ubuntu-latest
+            os: linux
+          - runs-on: macos-latest
+            os: macos
+    runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -40,7 +47,8 @@ jobs:
       - run: gh release create v${{ needs.get-version.outputs.version }} --generate-notes
   release-upload:
     needs: [get-version, release-create]
-    runs-on: ubuntu-latest
+    strategy: *strategy
+    runs-on: ${{ matrix.runs-on }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
@@ -48,7 +56,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo build --release
       - run: |
-          archive='fn-${{ needs.get-version.outputs.version }}-${{ runner.os }}.tar.gz'
+          archive='fn-${{ needs.get-version.outputs.version }}-${{ matrix.os }}.tar.gz'
           tar czf "${archive}" target/release/fn
           gh release upload v${{ needs.get-version.outputs.version }} "${archive}"
   cargo-publish:
