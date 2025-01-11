@@ -30,16 +30,27 @@ jobs:
           )"
           echo version="${version}" | tee -a "${GITHUB_OUTPUT}"
           echo published="${published}" | tee -a "${GITHUB_OUTPUT}"
-  release:
+  release-create:
     needs: get-version
     if: ${{ needs.get-version.outputs.published == 'false' }}
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - run: gh release create v${{ needs.get-version.outputs.version }} --generate-notes
+  release-upload:
+    needs: [get-version, release-create]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: gh release create v${{ needs.get-version.outputs.version }} --generate-notes
+      - run: cargo build --release
+      - run: |
+          archive='fn-${{ needs.get-version.outputs.version }}-${{ runner.os }}.tar.gz'
+          tar czf "${archive}" target/release/fn
+          gh release upload v${{ needs.get-version.outputs.version }} "${archive}"
   cargo-publish:
     needs: get-version
     if: ${{ needs.get-version.outputs.published == 'false' }}
