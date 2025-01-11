@@ -46,7 +46,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: gh release create v${{ needs.get-version.outputs.version }} --generate-notes
+      # TODO remove `|| true` below
+      - run: gh release create v${{ needs.get-version.outputs.version }} --generate-notes || true
   release-upload:
     needs: [get-version, release-create]
     strategy:
