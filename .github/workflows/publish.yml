@@ -39,11 +39,13 @@ jobs:
           echo published="${published}" | tee -a "${GITHUB_OUTPUT}"
   release-create:
     needs: get-version
-    if: ${{ needs.get-version.outputs.published == 'false' }}
+    # if: ${{ needs.get-version.outputs.published == 'false' }}
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - run: gh release create v${{ needs.get-version.outputs.version }} --generate-notes
   release-upload:
     needs: [get-version, release-create]
