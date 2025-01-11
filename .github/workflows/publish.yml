@@ -3,21 +3,21 @@ on:
     branches:
       - main
 jobs:
-  test:
-    strategy: &strategy
+  cargo-test:
+    strategy:
       matrix:
-        includes:
-          - runs-on: ubuntu-latest
-            os: linux
-          - runs-on: macos-latest
-            os: macos
+        include:
+          - os: linux
+            runs-on: ubuntu-latest
+          - os: macos
+            runs-on: macos-latest
     runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo test
   get-version:
-    needs: test
+    needs: cargo-test
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.vars.outputs.version }}
@@ -47,7 +47,13 @@ jobs:
       - run: gh release create v${{ needs.get-version.outputs.version }} --generate-notes
   release-upload:
     needs: [get-version, release-create]
-    strategy: *strategy
+    strategy:
+      matrix:
+        includes:
+          - os: linux
+            runs-on: ubuntu-latest
+          - os: macos
+            runs-on: macos-latest
     runs-on: ${{ matrix.runs-on }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -69,4 +75,3 @@ jobs:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo publish
-      
