@@ -12,11 +12,11 @@ macro_rules! with_catch {
 }
 
 pub struct Options<'a, I> {
-    pub body: &'a str,
-    pub env: I,
     pub parse: bool,
-    pub stdin: Option<String>,
     pub stringify: bool,
+    pub body: &'a str,
+    pub stdin: String,
+    pub env: I,
 }
 
 pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Result<String> {
@@ -45,17 +45,11 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
     let mut scope = v8::ContextScope::new(&mut scope, context);
     let mut scope = v8::TryCatch::new(&mut scope);
 
-    let undefined = v8::undefined(&mut scope);
-
-    let stdin: v8::Local<v8::Value> = if let Some(s) = options.stdin {
-        let s = string(&mut scope, &s)?;
-        if options.parse {
-            with_catch!(scope, v8::json::parse(&mut scope, s)).context("parsing STDIN")?
-        } else {
-            s.into()
-        }
+    let stdin = string(&mut scope, &options.stdin)?;
+    let stdin: v8::Local<v8::Value> = if options.parse {
+        with_catch!(scope, v8::json::parse(&mut scope, stdin)).context("parsing STDIN")?
     } else {
-        undefined.into()
+        stdin.into()
     };
 
     let script = string(&mut scope, &format!("$ => {}", options.body))?;
@@ -66,6 +60,7 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
         .context("running script")?
         .try_cast::<v8::Function>()?;
 
+    let undefined = v8::undefined(&mut scope);
     let mut res = with_catch!(scope, f.call(&mut scope, undefined.into(), &[stdin]))
         .context("evaluating function")?;
 

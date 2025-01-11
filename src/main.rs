@@ -40,18 +40,16 @@ fn try_main() -> Result<()> {
     let args = Args::parse();
 
     let mut options = v8::Options {
-        body: &args.body,
-        env: env::vars(),
         parse: args.parse,
-        stdin: None,
         stringify: args.stringify,
+        body: &args.body,
+        stdin: String::new(),
+        env: env::vars(),
     };
 
     let mut stdin = io::stdin();
     if !stdin.is_terminal() {
-        let mut buf = String::new();
-        stdin.read_to_string(&mut buf)?;
-        options.stdin = Some(buf);
+        stdin.read_to_string(&mut options.stdin)?;
     }
 
     let res = v8::eval(options)?;

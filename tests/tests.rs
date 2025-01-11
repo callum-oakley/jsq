@@ -13,7 +13,7 @@ struct Output {
     stderr: String,
 }
 
-fn run<'a, I>(args: &[&str], stdin: Option<&str>, vars: I) -> Result<Output>
+fn run<'a, I>(args: &[&str], stdin: &str, vars: I) -> Result<Output>
 where
     I: IntoIterator<Item = (&'a str, &'a str)>,
 {
@@ -24,23 +24,19 @@ where
         .context("getting parent")?
         .join(format!("fn{}", EXE_SUFFIX));
 
-    let mut cmd = Command::new(bin);
-    cmd.args(args);
-    cmd.envs(vars);
-    cmd.stdout(Stdio::piped());
-    cmd.stderr(Stdio::piped());
-    if stdin.is_some() {
-        cmd.stdin(Stdio::piped());
-    }
+    let mut child = Command::new(bin)
+        .args(args)
+        .envs(vars)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
 
-    let mut child = cmd.spawn()?;
-    if let Some(stdin) = stdin {
-        child
-            .stdin
-            .take()
-            .context("getting stdin")?
-            .write_all(stdin.as_bytes())?;
-    }
+    child
+        .stdin
+        .take()
+        .context("getting stdin")?
+        .write_all(stdin.as_bytes())?;
 
     let output = child.wait_with_output()?;
 
@@ -69,62 +65,52 @@ fn err(stderr: &str) -> Output {
 
 #[test]
 fn test() -> Result<()> {
-    assert!(run(&[], None, [])?
+    assert!(run(&[], "", [])?
         .stderr
         .starts_with("Evaluate a JavaScript function and print the result"));
 
-    assert_eq!(run(&["2 + 3"], None, [])?, ok("5\n"));
+    assert_eq!(run(&["2 + 3"], "", [])?, ok("5\n"));
+
+    assert_eq!(run(&["{ const x = 5; return x * x }"], "", [])?, ok("25\n"));
+
+    assert_eq!(run(&["-s", "undefined"], "", [])?, ok("undefined\n"));
+
+    assert_eq!(run(&["-ps", "$.foo"], r#"{ "foo": 42 }"#, [])?, ok("42\n"));
 
     assert_eq!(
-        run(&["{ const x = 5; return x * x }"], None, [])?,
-        ok("25\n")
-    );
-
-    assert_eq!(run(&["-s", "undefined"], None, [])?, ok("undefined\n"));
-
-    assert_eq!(
-        run(&["-ps", "$.foo"], Some(r#"{ "foo": 42 }"#), [])?,
-        ok("42\n")
-    );
-
-    assert_eq!(
-        run(&["-ps", "$.foo"], Some(r#"{ "foo": "bar" }"#), [])?,
+        run(&["-ps", "$.foo"], r#"{ "foo": "bar" }"#, [])?,
         ok("\"bar\"\n")
     );
 
     assert_eq!(
-        run(
-            &["-ps", "$.foo"],
-            Some(r#"{ "foo": { "bar": [0, 1, 2] } }"#),
-            []
-        )?,
+        run(&["-ps", "$.foo"], r#"{ "foo": { "bar": [0, 1, 2] } }"#, [])?,
         ok("{\n  \"bar\": [\n    0,\n    1,\n    2\n  ]\n}\n")
     );
 
     assert_eq!(
-        run(&["-s", "({ a: {}, b: [] })"], None, [])?,
+        run(&["-s", "({ a: {}, b: [] })"], "", [])?,
         ok("{\n  \"a\": {},\n  \"b\": []\n}\n")
     );
 
-    assert_eq!(run(&["$foo"], None, [("foo", "42")])?, ok("42\n"));
+    assert_eq!(run(&["$foo"], "", [("foo", "42")])?, ok("42\n"));
 
     assert_eq!(
-        run(&[r"$.match(/foo:(\w*)/)[1]"], Some("foo:bar baz:42"), [])?,
+        run(&[r"$.match(/foo:(\w*)/)[1]"], "foo:bar baz:42", [])?,
         ok("bar\n")
     );
 
     assert_eq!(
-        run(&["foo"], None, [])?,
+        run(&["foo"], "", [])?,
         err("error: evaluating function: ReferenceError: foo is not defined\n")
     );
 
     assert_eq!(
-        run(&["const x = 5; return x * x"], None, [])?,
+        run(&["const x = 5; return x * x"], "", [])?,
         err("error: compiling script: SyntaxError: Unexpected token 'const'\n")
     );
 
     assert_eq!(
-        run(&["-p"], Some("foo"), [])?,
+        run(&["-p"], "foo", [])?,
         err("error: parsing STDIN: SyntaxError: Unexpected token 'o', \"foo\" is not valid JSON\n")
     );
 

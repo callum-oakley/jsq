@@ -49,8 +49,8 @@ The provided `BODY` is evaluated by [V8][] as part of the expression `$ => BODY`
 this means that `BODY` must have the syntax of an [Arrow Function][] body: it can either be a single
 expression, or multiple statements enclosed in braces with an explicit return statement.
 
-If STDIN is not a terminal then `$` contains the result of reading STDIN as text, or of parsing it
-as JSON if the `-p` flag is set. If STDIN [is a terminal][] then `$` is `undefined`.
+`$` contains the result of reading STDIN as text, or of parsing it as JSON if the `-p` flag is set.
+If STDIN [is a terminal][] then `$` is the empty string.
 
 The result is printed to STDOUT after being [cast to a string][], or serialized as JSON if the `-s`
 flag is set.
