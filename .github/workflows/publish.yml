@@ -39,15 +39,14 @@ jobs:
           echo published="${published}" | tee -a "${GITHUB_OUTPUT}"
   release-create:
     needs: get-version
-    # if: ${{ needs.get-version.outputs.published == 'false' }}
+    if: ${{ needs.get-version.outputs.published == 'false' }}
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      # TODO remove `|| true` below
-      - run: gh release create v${{ needs.get-version.outputs.version }} --generate-notes || true
+      - run: gh release create v${{ needs.get-version.outputs.version }} --generate-notes
   release-upload:
     needs: [get-version, release-create]
     strategy:
@@ -65,9 +64,11 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo build --release
       - run: |
-          archive='fn-${{ needs.get-version.outputs.version }}-${{ matrix.os }}.tar.gz'
-          tar czf "${archive}" target/release/fn
-          gh release upload v${{ needs.get-version.outputs.version }} "${archive}"
+          archive='fn-${{ needs.get-version.outputs.version }}-${{ matrix.os }}'
+          mkdir "${archive}"
+          cp target/release/fn "${archive}"
+          tar czf "${archive}.tar.gz" "${archive}"
+          gh release upload v${{ needs.get-version.outputs.version }} "${archive}.tar.gz"
   cargo-publish:
     needs: get-version
     if: ${{ needs.get-version.outputs.published == 'false' }}
