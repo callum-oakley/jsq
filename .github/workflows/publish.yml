@@ -2,6 +2,9 @@ on:
   push:
     branches:
       - main
+defaults:
+  run:
+    shell: bash
 jobs:
   cargo-test:
     strategy:
