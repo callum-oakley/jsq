@@ -32,13 +32,13 @@ jobs:
           )"
           published="$(
             curl -s https://crates.io/api/v1/crates/jfn |
-              version="${version}" jfn -p '$.versions.map(a => a.num).includes($version)'
+              version="${version}" jfn -p '$.versions?.map(a => a.num).includes($version)'
           )"
           echo version="${version}" | tee -a "${GITHUB_OUTPUT}"
           echo published="${published}" | tee -a "${GITHUB_OUTPUT}"
   release-create:
     needs: get-version
-    if: ${{ needs.get-version.outputs.published == 'false' }}
+    if: ${{ needs.get-version.outputs.published != 'true' }}
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -75,7 +75,7 @@ jobs:
           gh release upload v${{ needs.get-version.outputs.version }} "${archive}.tar.gz"
   cargo-publish:
     needs: get-version
-    if: ${{ needs.get-version.outputs.published == 'false' }}
+    if: ${{ needs.get-version.outputs.published != 'true' }}
     runs-on: ubuntu-latest
     env:
       CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
