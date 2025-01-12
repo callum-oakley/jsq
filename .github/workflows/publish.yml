@@ -23,7 +23,8 @@ jobs:
       published: ${{ steps.vars.outputs.published }}
     steps:
       - uses: actions/checkout@v4
-      - run: brew install callum-oakley/tap/jfn
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install --path .
       - id: vars
         run: |
           version="$(
@@ -43,6 +44,7 @@ jobs:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
       - run: gh release create v${{ needs.get-version.outputs.version }} --generate-notes
   release-upload:
     needs: [get-version, release-create]
