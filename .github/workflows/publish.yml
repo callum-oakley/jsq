@@ -28,11 +28,11 @@ jobs:
       - id: vars
         run: |
           version="$(
-            cat Cargo.toml | fn '$.match(/version = "(\d+\.\d+\.\d+)"/)[1]'
+            cat Cargo.toml | jfn '$.match(/version = "(\d+\.\d+\.\d+)"/)[1]'
           )"
           published="$(
-            curl -s https://crates.io/api/v1/crates/fn |
-              version="${version}" fn -p '$.versions.map(a => a.num).includes($version)'
+            curl -s https://crates.io/api/v1/crates/jfn |
+              version="${version}" jfn -p '$.versions.map(a => a.num).includes($version)'
           )"
           echo version="${version}" | tee -a "${GITHUB_OUTPUT}"
           echo published="${published}" | tee -a "${GITHUB_OUTPUT}"
@@ -53,13 +53,13 @@ jobs:
         include:
           - os: linux
             runs-on: ubuntu-latest
-            bin: target/release/fn
+            bin: target/release/jfn
           - os: macos
             runs-on: macos-latest
-            bin: target/release/fn
+            bin: target/release/jfn
           - os: windows
             runs-on: windows-latest
-            bin: target/release/fn.exe
+            bin: target/release/jfn.exe
     runs-on: ${{ matrix.runs-on }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -68,7 +68,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - run: cargo build --release
       - run: |
-          archive='fn-${{ needs.get-version.outputs.version }}-${{ matrix.os }}'
+          archive='jfn-${{ needs.get-version.outputs.version }}-${{ matrix.os }}'
           mkdir "${archive}"
           cp ${{ matrix.bin }} "${archive}"
           tar czf "${archive}.tar.gz" "${archive}"

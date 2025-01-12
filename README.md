@@ -1,13 +1,13 @@
-# fn
+# jfn
 
-fn is a tool for evaluating a JavaScript function and printing the result.
+jfn is a tool for evaluating a JavaScript function and printing the result.
 
 ## Help
 
 ```
 Evaluate a JavaScript function and print the result
 
-Usage: fn [OPTIONS] [BODY]
+Usage: jfn [OPTIONS] [BODY]
 
 Arguments:
   [BODY]  The body of the JavaScript function to be evaluated [default: $]
@@ -28,7 +28,7 @@ the power of "Immortality":
 
 ```
 > curl https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json |
-    fn -ps '$.members.find(m => m.powers.includes("Immortality"))'
+    jfn -ps '$.members.find(m => m.powers.includes("Immortality"))'
 {
   "name": "Eternal Flame",
   "age": 1000000,
@@ -61,28 +61,31 @@ Environment variables are available in `BODY` prefixed by `$`. e.g. `USER` is av
 
 JavaScript is a convenient language with which to process JSON (which stands for "JavaScript Object
 Notation" after all), but the boilerplate of reading from STDIN, parsing, and writing to STDOUT
-makes many could-be "one-liners" significantly more involved than they need to be. fn provides a
+makes many could-be "one-liners" significantly more involved than they need to be. jfn provides a
 thin wrapper around V8 which handles this boilerplate and makes it more ergonomic to sprinkle a
 little JavaScript in to a shell script.
 
-fn can be used for many of the same tasks as [jq][]. A given jq command is often a little shorter
-than the equivalent fn command, but if (like the author) you find yourself often forgetting the
-syntax of jq, and you already know JavaScript, you might find fn easier to use. To see how fn
+jfn can be used for many of the same tasks as [jq][]. A given jq command is often a little shorter
+than the equivalent jfn command, but if (like the author) you find yourself often forgetting the
+syntax of jq, and you already know JavaScript, you might find jfn easier to use. To see how jfn
 compares to jq, check out the [translated jq tutorial][].
 
 ## Install
 
-First you'll need to [install Rust][], then
+With [cargo][]:
 
 ```
-cargo install fn
+cargo install jfn
 ```
+
+Alternatively, there are binaries for Linux, MacOS, and Windows [attached to each release][].
 
 [a bunch of superheros]: https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json
 [Arrow Function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
+[cargo]: https://www.rust-lang.org/tools/install
 [cast to a string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/toString
-[install Rust]: https://www.rust-lang.org/tools/install
 [is a terminal]: https://doc.rust-lang.org/beta/std/io/trait.IsTerminal.html#tymethod.is_terminal
 [jq]: https://jqlang.github.io/jq/
+[attached to each release]: https://github.com/callum-oakley/jfn/releases
 [translated jq tutorial]: /tutorial.md
 [V8]: https://v8.dev/

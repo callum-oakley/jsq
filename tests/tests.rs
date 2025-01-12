@@ -22,7 +22,7 @@ where
         .context("getting parent")?
         .parent()
         .context("getting parent")?
-        .join(format!("fn{}", EXE_SUFFIX));
+        .join(format!("jfn{}", EXE_SUFFIX));
 
     let mut child = Command::new(bin)
         .args(args)

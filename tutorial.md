@@ -1,31 +1,31 @@
 # Tutorial
 
-fn can be used for a lot of the same tasks as [jq](https://jqlang.github.io/jq/). Below is a copy of
-the [jq tutorial](https://jqlang.github.io/jq/tutorial/) with all the jq translated to fn.
+jfn can be used for a lot of the same tasks as [jq](https://jqlang.github.io/jq/). Below is a copy of
+the [jq tutorial](https://jqlang.github.io/jq/tutorial/) with all the jq translated to jfn.
 
 ---
 
-GitHub has a JSON API, so let's play with that. This URL gets us the last 5 commits from the fn
+GitHub has a JSON API, so let's play with that. This URL gets us the last 5 commits from the jfn
 repo.
 
 ```
-curl 'https://api.github.com/repos/callum-oakley/fn/commits?per_page=5'
+curl 'https://api.github.com/repos/callum-oakley/jfn/commits?per_page=5'
 ```
 
 GitHub returns nicely formatted JSON. For servers that don't, it can be helpful to pipe the response
-through fn to pretty-print it. The `-p` flag calls `JSON.parse` on STDIN before passing it to the
+through jfn to pretty-print it. The `-p` flag calls `JSON.parse` on STDIN before passing it to the
 function, and the `-s` flag calls `JSON.stringify` on the result before printing it to STDOUT. The
 default function body is the identity: `$`.
 
 ```
-curl 'https://api.github.com/repos/callum-oakley/fn/commits?per_page=5' | fn -ps
+curl 'https://api.github.com/repos/callum-oakley/jfn/commits?per_page=5' | jfn -ps
 ```
 
-We can use fn to extract just the first commit. `$` is the result of parsing STDIN as JSON, so
+We can use jfn to extract just the first commit. `$` is the result of parsing STDIN as JSON, so
 `$[0]` is the first commit.
 
 ```
-curl 'https://api.github.com/repos/callum-oakley/fn/commits?per_page=5' | fn -ps '$[0]'
+curl 'https://api.github.com/repos/callum-oakley/jfn/commits?per_page=5' | jfn -ps '$[0]'
 ```
 
 For the rest of the examples, I'll leave out the `curl` command - it's not going to change.
@@ -34,7 +34,7 @@ There's a lot of info we don't care about there, so we'll restrict it down to th
 fields.
 
 ```
-fn -ps '{ const a = $[0]; return { message: a.commit.message, name: a.commit.committer.name } }'
+jfn -ps '{ const a = $[0]; return { message: a.commit.message, name: a.commit.committer.name } }'
 ```
 
 We assign `$[0]` to a variable and then use that variable to construct a new object with only the
@@ -45,7 +45,7 @@ Now let's get the rest of the commits by applying the same transformation to eve
 `map`.
 
 ```
-fn -ps '$.map(a => ({ message: a.commit.message, name: a.commit.committer.name }))'
+jfn -ps '$.map(a => ({ message: a.commit.message, name: a.commit.committer.name }))'
 ```
 
 Next, let's try getting the URLs of the parent commits out of the API results as well. In each
@@ -55,8 +55,8 @@ commit, the GitHub API includes information about "parent" commits. There can be
 "parents": [
   {
     "sha": "66ec47a4f84d3ab2dfe95595a57461fa4d19f8d6",
-    "url": "https://api.github.com/repos/callum-oakley/fn/commits/66ec47a4f84d3ab2dfe95595a57461fa4d19f8d6",
-    "html_url": "https://github.com/callum-oakley/fn/commit/66ec47a4f84d3ab2dfe95595a57461fa4d19f8d6"
+    "url": "https://api.github.com/repos/callum-oakley/jfn/commits/66ec47a4f84d3ab2dfe95595a57461fa4d19f8d6",
+    "html_url": "https://github.com/callum-oakley/jfn/commit/66ec47a4f84d3ab2dfe95595a57461fa4d19f8d6"
   }
 ]
 ```
@@ -65,7 +65,7 @@ We want to pull out all of the "html_url" fields inside that array of parent com
 simple list of strings to go along with the "message" and "author" fields we already have.
 
 ```
-fn -ps '$.map(a => ({
+jfn -ps '$.map(a => ({
   message: a.commit.message,
   name: a.commit.committer.name,
   parents: a.parents.map(b => b.html_url),
@@ -77,5 +77,5 @@ to pull the commit URLs out of each parent object.
 
 ---
 
-Here endeth the tutorial! There's lots more to play with. [Install fn](/README.md) if you haven't
-already, and check out `fn --help` to see all the available options.
+Here endeth the tutorial! There's lots more to play with. [Install jfn](/README.md) if you haven't
+already, and check out `jfn --help` to see all the available options.
