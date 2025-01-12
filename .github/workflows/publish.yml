@@ -6,11 +6,7 @@ jobs:
   cargo-test:
     strategy:
       matrix:
-        include:
-          - os: linux
-            runs-on: ubuntu-latest
-          - os: macos
-            runs-on: macos-latest
+        runs-on: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.runs-on }}
     steps:
       - uses: actions/checkout@v4
@@ -54,8 +50,13 @@ jobs:
         include:
           - os: linux
             runs-on: ubuntu-latest
+            bin: target/release/fn
           - os: macos
             runs-on: macos-latest
+            bin: target/release/fn
+          - os: windows
+            runs-on: windows-latest
+            bin: target/release/fn.exe
     runs-on: ${{ matrix.runs-on }}
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -66,7 +67,7 @@ jobs:
       - run: |
           archive='fn-${{ needs.get-version.outputs.version }}-${{ matrix.os }}'
           mkdir "${archive}"
-          cp target/release/fn "${archive}"
+          cp ${{ matrix.bin }} "${archive}"
           tar czf "${archive}.tar.gz" "${archive}"
           gh release upload v${{ needs.get-version.outputs.version }} "${archive}.tar.gz"
   cargo-publish:
