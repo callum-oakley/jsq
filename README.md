@@ -72,6 +72,12 @@ compares to jq, check out the [translated jq tutorial][].
 
 ## Install
 
+With [brew][]:
+
+```
+brew install callum-oakley/tap/jfn
+```
+
 With [cargo][]:
 
 ```
@@ -82,10 +88,11 @@ Alternatively, there are binaries for Linux, MacOS, and Windows [attached to eac
 
 [a bunch of superheros]: https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json
 [Arrow Function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
+[attached to each release]: https://github.com/callum-oakley/jfn/releases
+[brew]: https://brew.sh/
 [cargo]: https://www.rust-lang.org/tools/install
 [cast to a string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/toString
 [is a terminal]: https://doc.rust-lang.org/beta/std/io/trait.IsTerminal.html#tymethod.is_terminal
 [jq]: https://jqlang.github.io/jq/
-[attached to each release]: https://github.com/callum-oakley/jfn/releases
 [translated jq tutorial]: /tutorial.md
 [V8]: https://v8.dev/
