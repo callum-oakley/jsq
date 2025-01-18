@@ -111,7 +111,7 @@ fn test() -> Result<()> {
 
     assert_eq!(
         run(&["-p"], "foo", [])?,
-        err("error: parsing STDIN: SyntaxError: Unexpected token 'o', \"foo\" is not valid JSON\n")
+        err("error: parsing JSON: SyntaxError: Unexpected token 'o', \"foo\" is not valid JSON\n")
     );
 
     assert_eq!(

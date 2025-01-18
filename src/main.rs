@@ -9,7 +9,7 @@ use std::{
     process,
 };
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Parser;
 
 /// Evaluate a JavaScript function and print the result.
@@ -64,11 +64,15 @@ fn try_main() -> Result<()> {
     if args.yaml {
         // TODO serde_yaml is deprecated.
         // Keeping an eye on https://github.com/saphyr-rs/saphyr/issues/1.
-        options.stdin = serde_yaml::from_str::<serde_json::Value>(&options.stdin)?.to_string();
+        options.stdin = serde_yaml::from_str::<serde_json::Value>(&options.stdin)
+            .context("parsing YAML")?
+            .to_string();
     }
 
     if args.toml {
-        options.stdin = toml::from_str::<serde_json::Value>(&options.stdin)?.to_string();
+        options.stdin = toml::from_str::<serde_json::Value>(&options.stdin)
+            .context("parsing TOML")?
+            .to_string();
     }
 
     let res = v8::eval(options)?;

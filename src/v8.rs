@@ -47,7 +47,7 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
 
     let stdin = string(&mut scope, &options.stdin)?;
     let stdin: v8::Local<v8::Value> = if options.parse {
-        with_catch!(scope, v8::json::parse(&mut scope, stdin)).context("parsing STDIN")?
+        with_catch!(scope, v8::json::parse(&mut scope, stdin)).context("parsing JSON")?
     } else {
         stdin.into()
     };
