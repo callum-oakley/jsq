@@ -74,8 +74,7 @@ jobs:
           tar czf "${archive}.tar.gz" "${archive}"
           gh release upload v${{ needs.get-version.outputs.version }} "${archive}.tar.gz"
   homebrew-publish:
-    # needs: [get-version, release-upload]
-    needs: get-version
+    needs: [get-version, release-upload]
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.HOMEBREW_PUBLISH_TOKEN }}
