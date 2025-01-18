@@ -27,9 +27,7 @@ jobs:
       - run: cargo install --path .
       - id: vars
         run: |
-          version="$(
-            cat Cargo.toml | jfn '$.match(/version = "(\d+\.\d+\.\d+)"/)[1]'
-          )"
+          version="$(cat Cargo.toml | jfn -t '$.package.version')"
           published="$(
             curl -s https://crates.io/api/v1/crates/jfn |
               version="${version}" jfn -p '$.versions?.map(a => a.num).includes($version)'

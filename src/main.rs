@@ -22,13 +22,18 @@ use clap::Parser;
         "Environment variables are available in BODY prefixed by $.",
     ].join(" "))
 )]
+#[expect(clippy::struct_excessive_bools)]
 struct Args {
     /// Parse STDIN as JSON before passing it to the function.
     #[arg(short, long)]
     parse: bool,
 
+    /// Parse STDIN as YAML before passing it to the function.
+    #[arg(short, long, conflicts_with("toml"))]
+    yaml: bool,
+
     /// Parse STDIN as TOML before passing it to the function.
-    #[arg(short, long)]
+    #[arg(short, long, conflicts_with("yaml"))]
     toml: bool,
 
     /// JSON.stringify the result before printing it to STDOUT.
@@ -44,7 +49,7 @@ fn try_main() -> Result<()> {
     let args = Args::parse();
 
     let mut options = v8::Options {
-        parse: args.parse || args.toml,
+        parse: args.parse || args.yaml || args.toml,
         stringify: args.stringify,
         body: &args.body,
         stdin: String::new(),
@@ -56,12 +61,14 @@ fn try_main() -> Result<()> {
         stdin.read_to_string(&mut options.stdin)?;
     }
 
+    if args.yaml {
+        // TODO serde_yaml is deprecated.
+        // Keeping an eye on https://github.com/saphyr-rs/saphyr/issues/1.
+        options.stdin = serde_yaml::from_str::<serde_json::Value>(&options.stdin)?.to_string();
+    }
+
     if args.toml {
-        options.stdin = options
-            .stdin
-            .parse::<toml::Value>()?
-            .try_into::<serde_json::Value>()?
-            .to_string();
+        options.stdin = toml::from_str::<serde_json::Value>(&options.stdin)?.to_string();
     }
 
     let res = v8::eval(options)?;

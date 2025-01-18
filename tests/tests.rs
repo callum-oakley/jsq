@@ -119,5 +119,7 @@ fn test() -> Result<()> {
         ok("jfn\n")
     );
 
+    assert_eq!(run(&["-y", "$.foo"], "foo: 42", [])?, ok("42\n"));
+
     Ok(())
 }
