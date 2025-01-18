@@ -74,8 +74,11 @@ jobs:
           tar czf "${archive}.tar.gz" "${archive}"
           gh release upload v${{ needs.get-version.outputs.version }} "${archive}.tar.gz"
   homebrew-publish:
-    needs: [get-version, release-upload]
+    # needs: [get-version, release-upload]
+    needs: get-version
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - run: |
           gh api repos/callum-oakley/homebrew-tap/dispatches \
