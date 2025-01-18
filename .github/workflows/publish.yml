@@ -73,6 +73,14 @@ jobs:
           cp ${{ matrix.bin }} "${archive}"
           tar czf "${archive}.tar.gz" "${archive}"
           gh release upload v${{ needs.get-version.outputs.version }} "${archive}.tar.gz"
+  homebrew-publish:
+    needs: [get-version, release-upload]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          gh api repos/callum-oakley/homebrew-tap/dispatches \
+            -f 'event_type=publish' \
+            -f 'client_payload[version]=${{ needs.get-version.outputs.version }}'
   cargo-publish:
     needs: get-version
     if: ${{ needs.get-version.outputs.published != 'true' }}
