@@ -78,7 +78,7 @@ jobs:
     needs: get-version
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.HOMEBREW_PUBLISH_TOKEN }}
     steps:
       - run: |
           gh api repos/callum-oakley/homebrew-tap/dispatches \
