@@ -23,9 +23,13 @@ use clap::Parser;
     ].join(" "))
 )]
 struct Args {
-    /// JSON.parse STDIN before passing it to the function.
+    /// Parse STDIN as JSON before passing it to the function.
     #[arg(short, long)]
     parse: bool,
+
+    /// Parse STDIN as TOML before passing it to the function.
+    #[arg(short, long)]
+    toml: bool,
 
     /// JSON.stringify the result before printing it to STDOUT.
     #[arg(short, long)]
@@ -40,7 +44,7 @@ fn try_main() -> Result<()> {
     let args = Args::parse();
 
     let mut options = v8::Options {
-        parse: args.parse,
+        parse: args.parse || args.toml,
         stringify: args.stringify,
         body: &args.body,
         stdin: String::new(),
@@ -50,6 +54,14 @@ fn try_main() -> Result<()> {
     let mut stdin = io::stdin();
     if !stdin.is_terminal() {
         stdin.read_to_string(&mut options.stdin)?;
+    }
+
+    if args.toml {
+        options.stdin = options
+            .stdin
+            .parse::<toml::Value>()?
+            .try_into::<serde_json::Value>()?
+            .to_string();
     }
 
     let res = v8::eval(options)?;

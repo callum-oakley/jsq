@@ -13,7 +13,8 @@ Arguments:
   [BODY]  The body of the JavaScript function to be evaluated [default: $]
 
 Options:
-  -p, --parse      JSON.parse STDIN before passing it to the function
+  -p, --parse      Parse STDIN as JSON before passing it to the function
+  -t, --toml       Parse STDIN as TOML before passing it to the function
   -s, --stringify  JSON.stringify the result before printing it to STDOUT
   -h, --help       Print help
   -V, --version    Print version

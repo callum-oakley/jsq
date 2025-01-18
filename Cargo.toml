@@ -11,4 +11,5 @@ anyhow = "1.0.95"
 clap = { version = "4.5.23", features = ["derive"] }
 serde_json = { version = "1.0.135", features = ["preserve_order"] }
 termcolor = "1.4.1"
+toml = { version = "0.8.19", features = ["preserve_order"] }
 v8 = "130.0.5"

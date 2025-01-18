@@ -114,5 +114,10 @@ fn test() -> Result<()> {
         err("error: parsing STDIN: SyntaxError: Unexpected token 'o', \"foo\" is not valid JSON\n")
     );
 
+    assert_eq!(
+        run(&["-t", "$.package.name"], include_str!("../Cargo.toml"), [])?,
+        ok("jfn\n")
+    );
+
     Ok(())
 }
