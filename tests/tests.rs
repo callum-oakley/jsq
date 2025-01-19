@@ -137,10 +137,10 @@ fn test() -> Result<()> {
 
     assert_eq!(
         run(&["-tT"], include_str!("../Cargo.toml"), [])?,
-        ok(&toml::to_string(&toml::from_str::<toml::Value>(
-            include_str!("../Cargo.toml")
-        )?)?)
+        ok(include_str!("../Cargo.toml"))
     );
+
+    // TODO test round trips yaml -> json -> toml -> yaml and yaml -> toml -> json -> yaml
 
     Ok(())
 }

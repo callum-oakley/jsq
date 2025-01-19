@@ -8,9 +8,19 @@ repository = "https://github.com/callum-oakley/jfn"
 
 [dependencies]
 anyhow = "1.0.95"
-clap = { version = "4.5.23", features = ["derive"] }
-serde_json = { version = "1.0.135", features = ["preserve_order"] }
+regex = "1.11.1"
 serde_yaml = "0.9.34"
 termcolor = "1.4.1"
-toml = { version = "0.8.19", features = ["preserve_order"] }
 v8 = "130.0.5"
+
+[dependencies.clap]
+version = "4.5.23"
+features = ["derive"]
+
+[dependencies.serde_json]
+version = "1.0.135"
+features = ["preserve_order"]
+
+[dependencies.toml]
+version = "0.8.19"
+features = ["preserve_order"]
