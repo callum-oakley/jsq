@@ -73,22 +73,20 @@ fn test() -> Result<()> {
 
     assert_eq!(run(&["{ const x = 5; return x * x }"], "", [])?, ok("25\n"));
 
-    assert_eq!(run(&["-s", "undefined"], "", [])?, ok("undefined\n"));
-
-    assert_eq!(run(&["-ps", "$.foo"], r#"{ "foo": 42 }"#, [])?, ok("42\n"));
+    assert_eq!(run(&["-jJ", "$.foo"], r#"{ "foo": 42 }"#, [])?, ok("42\n"));
 
     assert_eq!(
-        run(&["-ps", "$.foo"], r#"{ "foo": "bar" }"#, [])?,
+        run(&["-jJ", "$.foo"], r#"{ "foo": "bar" }"#, [])?,
         ok("\"bar\"\n")
     );
 
     assert_eq!(
-        run(&["-ps", "$.foo"], r#"{ "foo": { "bar": [0, 1, 2] } }"#, [])?,
+        run(&["-jJ", "$.foo"], r#"{ "foo": { "bar": [0, 1, 2] } }"#, [])?,
         ok("{\n  \"bar\": [\n    0,\n    1,\n    2\n  ]\n}\n")
     );
 
     assert_eq!(
-        run(&["-s", "({ a: {}, b: [] })"], "", [])?,
+        run(&["-J", "({ a: {}, b: [] })"], "", [])?,
         ok("{\n  \"a\": {},\n  \"b\": []\n}\n")
     );
 
@@ -110,7 +108,7 @@ fn test() -> Result<()> {
     );
 
     assert_eq!(
-        run(&["-p"], "foo", [])?,
+        run(&["-j"], "foo", [])?,
         err("error: parsing JSON: SyntaxError: Unexpected token 'o', \"foo\" is not valid JSON\n")
     );
 

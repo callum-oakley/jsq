@@ -18,27 +18,35 @@ use clap::Parser;
     version,
     arg_required_else_help(true),
     after_help([
-        "STDIN is avaialable in BODY as $.",
+        "Input is avaialable in BODY as $.",
         "Environment variables are available in BODY prefixed by $.",
     ].join(" "))
 )]
 #[expect(clippy::struct_excessive_bools)]
 struct Args {
-    /// Parse STDIN as JSON before passing it to the function.
-    #[arg(short, long)]
-    parse: bool,
+    /// Parse input as JSON.
+    #[arg(short('j'), long, conflicts_with_all(["yaml_in", "toml_in"]))]
+    json_in: bool,
 
-    /// Parse STDIN as YAML before passing it to the function.
-    #[arg(short, long, conflicts_with("toml"))]
-    yaml: bool,
+    /// Parse input as YAML.
+    #[arg(short('y'), long, conflicts_with_all(["json_in", "toml_in"]))]
+    yaml_in: bool,
 
-    /// Parse STDIN as TOML before passing it to the function.
-    #[arg(short, long, conflicts_with("yaml"))]
-    toml: bool,
+    /// Parse input as TOML.
+    #[arg(short('t'), long, conflicts_with_all(["json_in", "yaml_in"]))]
+    toml_in: bool,
 
-    /// JSON.stringify the result before printing it to STDOUT.
-    #[arg(short, long)]
-    stringify: bool,
+    /// Print output as JSON.
+    #[arg(short('J'), long, conflicts_with_all(["yaml_out", "toml_out"]))]
+    json_out: bool,
+
+    /// Print output as YAML.
+    #[arg(short('Y'), long, conflicts_with_all(["json_out", "toml_out"]))]
+    yaml_out: bool,
+
+    /// Print output as TOML.
+    #[arg(short('T'), long, conflicts_with_all(["json_out", "yaml_out"]))]
+    toml_out: bool,
 
     /// The body of the JavaScript function to be evaluated.
     #[arg(default_value("$"))]
@@ -49,8 +57,8 @@ fn try_main() -> Result<()> {
     let args = Args::parse();
 
     let mut options = v8::Options {
-        parse: args.parse || args.yaml || args.toml,
-        stringify: args.stringify,
+        parse: args.json_in || args.yaml_in || args.toml_in,
+        stringify: args.json_out || args.yaml_out || args.toml_out,
         body: &args.body,
         stdin: String::new(),
         env: env::vars(),
@@ -61,24 +69,25 @@ fn try_main() -> Result<()> {
         stdin.read_to_string(&mut options.stdin)?;
     }
 
-    if args.yaml {
+    if args.yaml_in {
         // TODO serde_yaml is deprecated.
         // Keeping an eye on https://github.com/saphyr-rs/saphyr/issues/1.
         options.stdin = serde_yaml::from_str::<serde_json::Value>(&options.stdin)
             .context("parsing YAML")?
             .to_string();
-    }
-
-    if args.toml {
+    } else if args.toml_in {
         options.stdin = toml::from_str::<serde_json::Value>(&options.stdin)
             .context("parsing TOML")?
             .to_string();
     }
 
     let res = v8::eval(options)?;
-    // JSON.stringify can return undefined, which isn't JSON, so don't try to highlight it.
-    if args.stringify && res != "undefined" {
-        print::json(&res)?;
+    if args.json_out {
+        print::json(&res).context("printing JSON")?;
+    } else if args.yaml_out {
+        print::yaml(&res).context("printing YAML")?;
+    } else if args.toml_out {
+        print::toml(&res).context("printing TOML")?;
     } else if res.ends_with('\n') {
         print!("{res}");
     } else {

@@ -4,8 +4,7 @@ use std::{
     sync::LazyLock,
 };
 
-use anyhow::{Context, Error, Result};
-use serde_json::Value;
+use anyhow::{Error, Result};
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 const TAB_WIDTH: usize = 2;
@@ -35,9 +34,9 @@ macro_rules! write_with_color {
 }
 
 pub fn json(s: &str) -> Result<()> {
-    fn write_value(w: &mut impl WriteColor, depth: usize, value: &Value) -> Result<()> {
+    fn write_value(w: &mut impl WriteColor, depth: usize, value: &serde_json::Value) -> Result<()> {
         match value {
-            Value::Array(arr) => {
+            serde_json::Value::Array(arr) => {
                 write!(w, "[")?;
                 for (i, e) in arr.iter().enumerate() {
                     write!(w, "\n{}", " ".repeat((depth + 1) * TAB_WIDTH))?;
@@ -50,11 +49,11 @@ pub fn json(s: &str) -> Result<()> {
                 }
                 write!(w, "]")?;
             }
-            Value::Object(obj) => {
+            serde_json::Value::Object(obj) => {
                 write!(w, "{{")?;
                 for (i, (k, v)) in obj.iter().enumerate() {
                     write!(w, "\n{}", " ".repeat((depth + 1) * TAB_WIDTH))?;
-                    write_with_color!(w, KEY, "{}", Value::String(k.clone()))?;
+                    write_with_color!(w, KEY, "{}", serde_json::Value::String(k.clone()))?;
                     write!(w, ": ")?;
                     write_value(w, depth + 1, v)?;
                     if i == obj.len() - 1 {
@@ -65,7 +64,7 @@ pub fn json(s: &str) -> Result<()> {
                 }
                 write!(w, "}}")?;
             }
-            Value::String(_) => write_with_color!(w, STR, "{value}")?,
+            serde_json::Value::String(_) => write_with_color!(w, STR, "{value}")?,
             _ => write!(w, "{value}")?,
         }
         Ok(())
@@ -77,9 +76,23 @@ pub fn json(s: &str) -> Result<()> {
         ColorChoice::Never
     });
 
-    let value = Value::from_str(s).context("parsing JSON")?;
+    let value = serde_json::Value::from_str(s)?;
     write_value(&mut stdout, 0, &value)?;
     writeln!(&mut stdout)?;
+    Ok(())
+}
+
+// TODO colour
+pub fn yaml(s: &str) -> Result<()> {
+    let value = serde_json::from_str::<serde_yaml::Value>(s)?;
+    print!("{}", serde_yaml::to_string(&value)?);
+    Ok(())
+}
+
+// TODO colour
+pub fn toml(s: &str) -> Result<()> {
+    let value = serde_json::from_str::<toml::Value>(s)?;
+    print!("{}", toml::to_string(&value)?);
     Ok(())
 }
 

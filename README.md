@@ -13,14 +13,16 @@ Arguments:
   [BODY]  The body of the JavaScript function to be evaluated [default: $]
 
 Options:
-  -p, --parse      Parse STDIN as JSON before passing it to the function
-  -y, --yaml       Parse STDIN as YAML before passing it to the function
-  -t, --toml       Parse STDIN as TOML before passing it to the function
-  -s, --stringify  JSON.stringify the result before printing it to STDOUT
-  -h, --help       Print help
-  -V, --version    Print version
+  -j, --json-in   Parse input as JSON
+  -y, --yaml-in   Parse input as YAML
+  -t, --toml-in   Parse input as TOML
+  -J, --json-out  Print output as JSON
+  -Y, --yaml-out  Print output as YAML
+  -T, --toml-out  Print output as TOML
+  -h, --help      Print help
+  -V, --version   Print version
 
-STDIN is avaialable in BODY as $. Environment variables are available in BODY prefixed by $.
+Input is avaialable in BODY as $. Environment variables are available in BODY prefixed by $.
 ```
 
 ## Example
@@ -30,7 +32,7 @@ the power of "Immortality":
 
 ```
 > curl https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json |
-    jfn -ps '$.members.find(m => m.powers.includes("Immortality"))'
+    jfn -jJ '$.members.find(m => m.powers.includes("Immortality"))'
 {
   "name": "Eternal Flame",
   "age": 1000000,
@@ -51,11 +53,11 @@ The provided `BODY` is evaluated by [V8][] as part of the expression `$ => BODY`
 this means that `BODY` must have the syntax of an [Arrow Function][] body: it can either be a single
 expression, or multiple statements enclosed in braces with an explicit return statement.
 
-`$` contains the result of reading STDIN as text, or of parsing it as JSON if the `-p` flag is set,
+`$` contains the result of reading STDIN as text, or of parsing it as JSON if the `-j` flag is set,
 YAML if the `-y` flag is set, or TOML if the `-t` flag is set. If STDIN [is a terminal][] then `$`
 is the empty string.
 
-The result is printed to STDOUT after being [cast to a string][], or serialized as JSON if the `-s`
+The result is printed to STDOUT after being [cast to a string][], or serialized as JSON if the `-J`
 flag is set.
 
 Environment variables are available in `BODY` prefixed by `$`. e.g. `USER` is available as `$USER`.

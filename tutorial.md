@@ -13,19 +13,19 @@ curl 'https://api.github.com/repos/callum-oakley/jfn/commits?per_page=5'
 ```
 
 GitHub returns nicely formatted JSON. For servers that don't, it can be helpful to pipe the response
-through jfn to pretty-print it. The `-p` flag calls `JSON.parse` on STDIN before passing it to the
-function, and the `-s` flag calls `JSON.stringify` on the result before printing it to STDOUT. The
-default function body is the identity: `$`.
+through jfn to pretty-print it. The `-j` flag parses the input as JSON before passing it to the
+function, and the `-J` flag prints the output as JSON. The default function body is the identity:
+`$`.
 
 ```
-curl 'https://api.github.com/repos/callum-oakley/jfn/commits?per_page=5' | jfn -ps
+curl 'https://api.github.com/repos/callum-oakley/jfn/commits?per_page=5' | jfn -jJ
 ```
 
 We can use jfn to extract just the first commit. `$` is the result of parsing STDIN as JSON, so
 `$[0]` is the first commit.
 
 ```
-curl 'https://api.github.com/repos/callum-oakley/jfn/commits?per_page=5' | jfn -ps '$[0]'
+curl 'https://api.github.com/repos/callum-oakley/jfn/commits?per_page=5' | jfn -jJ '$[0]'
 ```
 
 For the rest of the examples, I'll leave out the `curl` command - it's not going to change.
@@ -34,7 +34,7 @@ There's a lot of info we don't care about there, so we'll restrict it down to th
 fields.
 
 ```
-jfn -ps '{ const a = $[0]; return { message: a.commit.message, name: a.commit.committer.name } }'
+jfn -jJ '{ const a = $[0]; return { message: a.commit.message, name: a.commit.committer.name } }'
 ```
 
 We assign `$[0]` to a variable and then use that variable to construct a new object with only the
@@ -45,7 +45,7 @@ Now let's get the rest of the commits by applying the same transformation to eve
 `map`.
 
 ```
-jfn -ps '$.map(a => ({ message: a.commit.message, name: a.commit.committer.name }))'
+jfn -jJ '$.map(a => ({ message: a.commit.message, name: a.commit.committer.name }))'
 ```
 
 Next, let's try getting the URLs of the parent commits out of the API results as well. In each
@@ -65,7 +65,7 @@ We want to pull out all of the "html_url" fields inside that array of parent com
 simple list of strings to go along with the "message" and "author" fields we already have.
 
 ```
-jfn -ps '$.map(a => ({
+jfn -jJ '$.map(a => ({
   message: a.commit.message,
   name: a.commit.committer.name,
   parents: a.parents.map(b => b.html_url),
