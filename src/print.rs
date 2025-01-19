@@ -1,6 +1,5 @@
 use std::{
     io::{self, IsTerminal, Write},
-    str::FromStr,
     sync::LazyLock,
 };
 
@@ -31,6 +30,14 @@ macro_rules! write_with_color {
             .and_then(|_| write!($dst, $($arg)*))
             .and_then(|_| $dst.reset())
     };
+}
+
+fn color_choice(t: &impl IsTerminal) -> ColorChoice {
+    if t.is_terminal() {
+        ColorChoice::Auto
+    } else {
+        ColorChoice::Never
+    }
 }
 
 pub fn json(s: &str) -> Result<()> {
@@ -70,22 +77,78 @@ pub fn json(s: &str) -> Result<()> {
         Ok(())
     }
 
-    let mut stdout = StandardStream::stdout(if io::stdout().is_terminal() {
-        ColorChoice::Auto
-    } else {
-        ColorChoice::Never
-    });
-
-    let value = serde_json::Value::from_str(s)?;
+    let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
+    let value = serde_json::from_str::<serde_json::Value>(s)?;
     write_value(&mut stdout, 0, &value)?;
     writeln!(&mut stdout)?;
     Ok(())
 }
 
-// TODO colour
 pub fn yaml(s: &str) -> Result<()> {
+    fn write_value(
+        w: &mut impl WriteColor,
+        depth: usize,
+        map_value: bool,
+        value: &serde_yaml::Value,
+    ) -> Result<()> {
+        match value {
+            serde_yaml::Value::Sequence(seq) => {
+                if seq.is_empty() {
+                    if map_value {
+                        write!(w, " ")?;
+                    }
+                    write!(w, "[]")?;
+                } else {
+                    for (i, e) in seq.iter().enumerate() {
+                        if i > 0 || map_value {
+                            write!(w, "\n{}", " ".repeat(depth * TAB_WIDTH))?;
+                        }
+                        write!(w, "- ")?;
+                        write_value(w, depth + 1, false, e)?;
+                    }
+                }
+            }
+            serde_yaml::Value::Mapping(map) => {
+                if map.is_empty() {
+                    if map_value {
+                        write!(w, " ")?;
+                    }
+                    write!(w, "{{}}")?;
+                } else {
+                    for (i, (k, v)) in map.iter().enumerate() {
+                        if i > 0 || map_value {
+                            write!(w, "\n{}", " ".repeat(depth * TAB_WIDTH))?;
+                        }
+                        let k = serde_yaml::to_string(k)?;
+                        write_with_color!(w, KEY, "{}", k.trim())?;
+                        write!(w, ":")?;
+                        write_value(w, depth + 1, true, v)?;
+                    }
+                }
+            }
+            serde_yaml::Value::String(_) => {
+                if map_value {
+                    write!(w, " ")?;
+                }
+                let value = serde_yaml::to_string(value)?;
+                // Replace serde_yaml's default 2 space indentation for block scalars.
+                let value = value.replace("\n  ", &format!("\n{}", " ".repeat(depth * TAB_WIDTH)));
+                write_with_color!(w, STR, "{}", value.trim())?;
+            }
+            _ => {
+                if map_value {
+                    write!(w, " ")?;
+                }
+                write!(w, "{}", serde_yaml::to_string(value)?.trim())?;
+            }
+        }
+        Ok(())
+    }
+
+    let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
     let value = serde_json::from_str::<serde_yaml::Value>(s)?;
-    print!("{}", serde_yaml::to_string(&value)?);
+    write_value(&mut stdout, 0, false, &value)?;
+    writeln!(&mut stdout)?;
     Ok(())
 }
 
@@ -97,11 +160,7 @@ pub fn toml(s: &str) -> Result<()> {
 }
 
 pub fn error(err: &Error) -> Result<()> {
-    let mut stderr = StandardStream::stderr(if io::stderr().is_terminal() {
-        ColorChoice::Auto
-    } else {
-        ColorChoice::Never
-    });
+    let mut stderr = StandardStream::stderr(color_choice(&io::stderr()));
     write_with_color!(&mut stderr, ERR, "error")?;
     writeln!(&mut stderr, ": {err:#}")?;
     Ok(())

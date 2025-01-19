@@ -113,11 +113,34 @@ fn test() -> Result<()> {
     );
 
     assert_eq!(
+        run(
+            &["-y", "$.jobs['get-version']['runs-on']"],
+            include_str!("../.github/workflows/publish.yml"),
+            []
+        )?,
+        ok("ubuntu-latest\n")
+    );
+
+    assert_eq!(
+        run(
+            &["-yY"],
+            include_str!("../.github/workflows/publish.yml"),
+            []
+        )?,
+        ok(include_str!("../.github/workflows/publish.yml"))
+    );
+
+    assert_eq!(
         run(&["-t", "$.package.name"], include_str!("../Cargo.toml"), [])?,
         ok("jfn\n")
     );
 
-    assert_eq!(run(&["-y", "$.foo"], "foo: 42", [])?, ok("42\n"));
+    assert_eq!(
+        run(&["-tT"], include_str!("../Cargo.toml"), [])?,
+        ok(&toml::to_string(&toml::from_str::<toml::Value>(
+            include_str!("../Cargo.toml")
+        )?)?)
+    );
 
     Ok(())
 }
