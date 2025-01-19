@@ -127,7 +127,7 @@ fn test() -> Result<()> {
             include_str!("../.github/workflows/publish.yml"),
             []
         )?,
-        ok(include_str!("../.github/workflows/publish.yml"))
+        ok(&include_str!("../.github/workflows/publish.yml").replace("\r\n", "\n"))
     );
 
     assert_eq!(
@@ -137,7 +137,7 @@ fn test() -> Result<()> {
 
     assert_eq!(
         run(&["-tT"], include_str!("../Cargo.toml"), [])?,
-        ok(include_str!("../Cargo.toml"))
+        ok(&include_str!("../Cargo.toml").replace("\r\n", "\n"))
     );
 
     // TODO test round trips yaml -> json -> toml -> yaml and yaml -> toml -> json -> yaml
