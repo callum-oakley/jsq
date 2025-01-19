@@ -22,6 +22,7 @@ fn bold(color: Color) -> ColorSpec {
 
 static KEY: LazyLock<ColorSpec> = LazyLock::new(|| normal(Color::Blue));
 static STR: LazyLock<ColorSpec> = LazyLock::new(|| normal(Color::Green));
+static HEADER: LazyLock<ColorSpec> = LazyLock::new(|| bold(Color::Blue));
 static ERR: LazyLock<ColorSpec> = LazyLock::new(|| bold(Color::Red));
 
 macro_rules! write_with_color {
@@ -152,10 +153,68 @@ pub fn yaml(s: &str) -> Result<()> {
     Ok(())
 }
 
-// TODO colour
 pub fn toml(s: &str) -> Result<()> {
+    fn write_value(w: &mut impl WriteColor, context: &str, value: &toml::Value) -> Result<()> {
+        match value {
+            toml::Value::Array(arr) => {
+                // TODO arrays of tables
+                // TODO break long arrays over multiple lines
+                write!(w, "[")?;
+                for (i, e) in arr.iter().enumerate() {
+                    write_value(w, context, e)?;
+                    if i != arr.len() - 1 {
+                        write!(w, ", ")?;
+                    }
+                }
+                write!(w, "]")?;
+            }
+            toml::Value::Table(table) => {
+                let mut flat = Vec::new();
+                let mut nested = Vec::new();
+                for (k, v) in table {
+                    if matches!(v, toml::Value::Table(_)) {
+                        nested.push((k, v));
+                    } else {
+                        flat.push((k, v));
+                    }
+                }
+
+                for (i, &(k, v)) in flat.iter().enumerate() {
+                    // TODO handle keys that need escaping
+                    write_with_color!(w, KEY, "{k}")?;
+                    write!(w, " = ")?;
+                    write_value(w, context, v)?;
+                    if i != flat.len() - 1 {
+                        writeln!(w)?;
+                    }
+                }
+
+                for (i, &(k, v)) in nested.iter().enumerate() {
+                    if !flat.is_empty() || i > 0 {
+                        write!(w, "\n\n")?;
+                    }
+                    // TODO handle keys that need escaping
+                    write_with_color!(w, HEADER, "[{context}{k}]")?;
+                    let toml::Value::Table(table) = v else {
+                        unreachable!("nested only contains tables by construction");
+                    };
+                    if !table.is_empty() {
+                        writeln!(w)?;
+                    }
+                    // TODO handle keys that need escaping
+                    write_value(w, &format!("{context}{k}."), v)?;
+                }
+            }
+            toml::Value::String(_) => write_with_color!(w, STR, "{value}")?,
+            _ => write!(w, "{value}")?,
+        }
+        Ok(())
+    }
+
+    let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
     let value = serde_json::from_str::<toml::Value>(s)?;
-    print!("{}", toml::to_string(&value)?);
+    write_value(&mut stdout, "", &value)?;
+    writeln!(&mut stdout)?;
     Ok(())
 }
 
