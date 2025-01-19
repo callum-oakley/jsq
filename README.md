@@ -58,7 +58,7 @@ YAML if the `-y` flag is set, or TOML if the `-t` flag is set. If STDIN [is a te
 is the empty string.
 
 The result is printed to STDOUT after being [cast to a string][], or serialized as JSON if the `-J`
-flag is set.
+flag is set, YAML if the `-Y` flag is set, or TOML if the `-T` flag is set.
 
 Environment variables are available in `BODY` prefixed by `$`. e.g. `USER` is available as `$USER`.
 
