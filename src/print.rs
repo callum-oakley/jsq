@@ -5,6 +5,7 @@ use std::{
 
 use anyhow::{Error, Result};
 use regex::Regex;
+use serde_json::Value;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 const TAB_WIDTH: usize = 2;
@@ -42,9 +43,9 @@ fn color_choice(t: &impl IsTerminal) -> ColorChoice {
     }
 }
 
-fn write_json(w: &mut impl WriteColor, depth: usize, value: &serde_json::Value) -> Result<()> {
+fn write_json(w: &mut impl WriteColor, depth: usize, value: &Value) -> Result<()> {
     match value {
-        serde_json::Value::Array(arr) => {
+        Value::Array(arr) => {
             write!(w, "[")?;
             for (i, e) in arr.iter().enumerate() {
                 write!(w, "\n{}", " ".repeat((depth + 1) * TAB_WIDTH))?;
@@ -57,11 +58,11 @@ fn write_json(w: &mut impl WriteColor, depth: usize, value: &serde_json::Value) 
             }
             write!(w, "]")?;
         }
-        serde_json::Value::Object(obj) => {
+        Value::Object(obj) => {
             write!(w, "{{")?;
             for (i, (k, v)) in obj.iter().enumerate() {
                 write!(w, "\n{}", " ".repeat((depth + 1) * TAB_WIDTH))?;
-                write_with_color!(w, KEY, "{}", serde_json::Value::String(k.clone()))?;
+                write_with_color!(w, KEY, "{}", Value::String(k.clone()))?;
                 write!(w, ": ")?;
                 write_json(w, depth + 1, v)?;
                 if i == obj.len() - 1 {
@@ -72,28 +73,35 @@ fn write_json(w: &mut impl WriteColor, depth: usize, value: &serde_json::Value) 
             }
             write!(w, "}}")?;
         }
-        serde_json::Value::String(_) => write_with_color!(w, STR, "{value}")?,
+        Value::String(_) => write_with_color!(w, STR, "{value}")?,
         _ => write!(w, "{value}")?,
     }
     Ok(())
 }
 
-fn write_yaml(
-    w: &mut impl WriteColor,
-    depth: usize,
-    map_value: bool,
-    value: &serde_yaml::Value,
-) -> Result<()> {
+// Conservative quoting to try and cover strings that need quoting in both YAML and TOML. No harm in
+// quoting more than necessary.
+fn quote_weird(s: &str) -> String {
+    static RE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"^[A-Za-z][A-Za-z0-9_\-]*$").unwrap());
+    if RE.is_match(s) {
+        s.to_string()
+    } else {
+        Value::String(s.to_string()).to_string()
+    }
+}
+
+fn write_yaml(w: &mut impl WriteColor, depth: usize, obj_value: bool, value: &Value) -> Result<()> {
     match value {
-        serde_yaml::Value::Sequence(seq) => {
-            if seq.is_empty() {
-                if map_value {
+        Value::Array(arr) => {
+            if arr.is_empty() {
+                if obj_value {
                     write!(w, " ")?;
                 }
                 write!(w, "[]")?;
             } else {
-                for (i, e) in seq.iter().enumerate() {
-                    if i > 0 || map_value {
+                for (i, e) in arr.iter().enumerate() {
+                    if i > 0 || obj_value {
                         write!(w, "\n{}", " ".repeat(depth * TAB_WIDTH))?;
                     }
                     write!(w, "- ")?;
@@ -101,96 +109,43 @@ fn write_yaml(
                 }
             }
         }
-        serde_yaml::Value::Mapping(map) => {
-            if map.is_empty() {
-                if map_value {
+        Value::Object(obj) => {
+            if obj.is_empty() {
+                if obj_value {
                     write!(w, " ")?;
                 }
                 write!(w, "{{}}")?;
             } else {
-                for (i, (k, v)) in map.iter().enumerate() {
-                    if i > 0 || map_value {
+                for (i, (k, v)) in obj.iter().enumerate() {
+                    if i > 0 || obj_value {
                         write!(w, "\n{}", " ".repeat(depth * TAB_WIDTH))?;
                     }
-                    let k = serde_yaml::to_string(k)?;
-                    write_with_color!(w, KEY, "{}", k.trim())?;
+                    write_with_color!(w, KEY, "{}", quote_weird(k))?;
                     write!(w, ":")?;
                     write_yaml(w, depth + 1, true, v)?;
                 }
             }
         }
-        serde_yaml::Value::String(_) => {
-            if map_value {
+        Value::String(s) => {
+            if obj_value {
                 write!(w, " ")?;
             }
-            let value = serde_yaml::to_string(value)?;
-            // Replace serde_yaml's default 2 space indentation for block scalars.
-            let value = value.replace("\n  ", &format!("\n{}", " ".repeat(depth * TAB_WIDTH)));
-            write_with_color!(w, STR, "{}", value.trim())?;
+            // TODO block scalars
+            write_with_color!(w, STR, "{}", quote_weird(s))?;
         }
         _ => {
-            if map_value {
+            if obj_value {
                 write!(w, " ")?;
             }
-            write!(w, "{}", serde_yaml::to_string(value)?.trim())?;
+            write!(w, "{value}")?;
         }
     }
     Ok(())
 }
 
-fn toml_key(key: &str) -> String {
-    static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z0-9_-]+$").unwrap());
-    if RE.is_match(key) {
-        key.to_string()
-    } else {
-        // https://toml.io/en/v1.0.0#string
-        // Any Unicode character may be used except those that must be escaped: quotation mark,
-        // backslash, and the control characters other than tab (U+0000 to U+0008, U+000A to U+001F,
-        // U+007F).
-        format!(
-            "\"{}\"",
-            key.replace('"', "\\\"")
-                .replace('\\', "\\\\")
-                .replace('\u{0000}', "\\u0000")
-                .replace('\u{0001}', "\\u0001")
-                .replace('\u{0002}', "\\u0002")
-                .replace('\u{0003}', "\\u0003")
-                .replace('\u{0004}', "\\u0004")
-                .replace('\u{0005}', "\\u0005")
-                .replace('\u{0006}', "\\u0006")
-                .replace('\u{0007}', "\\u0007")
-                .replace('\u{0008}', "\\b")
-                .replace('\u{0009}', "\\t")
-                .replace('\u{000A}', "\\n")
-                .replace('\u{000B}', "\\u000B")
-                .replace('\u{000C}', "\\f")
-                .replace('\u{000D}', "\\r")
-                .replace('\u{000E}', "\\u000E")
-                .replace('\u{000F}', "\\u000F")
-                .replace('\u{0010}', "\\u0010")
-                .replace('\u{0011}', "\\u0011")
-                .replace('\u{0012}', "\\u0012")
-                .replace('\u{0013}', "\\u0013")
-                .replace('\u{0014}', "\\u0014")
-                .replace('\u{0015}', "\\u0015")
-                .replace('\u{0016}', "\\u0016")
-                .replace('\u{0017}', "\\u0017")
-                .replace('\u{0018}', "\\u0018")
-                .replace('\u{0019}', "\\u0019")
-                .replace('\u{001A}', "\\u001A")
-                .replace('\u{001B}', "\\u001B")
-                .replace('\u{001C}', "\\u001C")
-                .replace('\u{001D}', "\\u001D")
-                .replace('\u{001E}', "\\u001E")
-                .replace('\u{001F}', "\\u001F")
-                .replace('\u{007F}', "\\u007F")
-        )
-    }
-}
-
-fn write_toml_inline(w: &mut impl WriteColor, value: &toml::Value) -> Result<()> {
+fn write_toml_inline(w: &mut impl WriteColor, value: &Value) -> Result<()> {
     match value {
-        toml::Value::Array(arr) => {
+        Value::Array(arr) => {
             write!(w, "[")?;
             for (i, e) in arr.iter().enumerate() {
                 write_toml_inline(w, e)?;
@@ -200,13 +155,13 @@ fn write_toml_inline(w: &mut impl WriteColor, value: &toml::Value) -> Result<()>
             }
             write!(w, "]")?;
         }
-        toml::Value::Table(table) => {
+        Value::Object(obj) => {
             write!(w, "{{")?;
-            for (i, (k, v)) in table.iter().enumerate() {
-                write_with_color!(w, KEY, " {}", toml_key(k))?;
+            for (i, (k, v)) in obj.iter().enumerate() {
+                write_with_color!(w, KEY, " {}", quote_weird(k))?;
                 write!(w, " = ")?;
                 write_toml_inline(w, v)?;
-                if i == table.len() - 1 {
+                if i == obj.len() - 1 {
                     write!(w, " ")?;
                 } else {
                     write!(w, ",")?;
@@ -219,26 +174,28 @@ fn write_toml_inline(w: &mut impl WriteColor, value: &toml::Value) -> Result<()>
     Ok(())
 }
 
-fn write_toml(w: &mut impl WriteColor, context: &str, value: &toml::Value) -> Result<()> {
-    fn is_table(value: &toml::Value) -> bool {
-        matches!(value, toml::Value::Table(_))
+// TODO omit unnecessary headers
+// TODO write objects with a single key using a dotted key rather than a new header
+fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<()> {
+    fn is_object(value: &Value) -> bool {
+        matches!(value, Value::Object(_))
     }
 
-    fn is_table_array(value: &toml::Value) -> bool {
-        if let toml::Value::Array(arr) = value {
-            arr.iter().all(is_table)
+    fn is_object_array(value: &Value) -> bool {
+        if let Value::Array(arr) = value {
+            arr.iter().all(is_object)
         } else {
             false
         }
     }
 
     match value {
-        toml::Value::Array(_) => write_toml_inline(w, value)?,
-        toml::Value::Table(table) => {
+        Value::Array(_) => write_toml_inline(w, value)?,
+        Value::Object(obj) => {
             let mut flat = Vec::new();
             let mut nested = Vec::new();
-            for (k, v) in table {
-                if is_table(v) || is_table_array(v) {
+            for (k, v) in obj {
+                if is_object(v) || is_object_array(v) {
                     nested.push((k, v));
                 } else {
                     flat.push((k, v));
@@ -246,7 +203,7 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &toml::Value) -> Re
             }
 
             for (i, &(k, v)) in flat.iter().enumerate() {
-                write_with_color!(w, KEY, "{}", toml_key(k))?;
+                write_with_color!(w, KEY, "{}", quote_weird(k))?;
                 write!(w, " = ")?;
                 write_toml(w, context, v)?;
                 if i != flat.len() - 1 {
@@ -255,29 +212,28 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &toml::Value) -> Re
             }
 
             for (i, &(k, v)) in nested.iter().enumerate() {
-                let k = format!("{}{}", context, toml_key(k));
+                let k = format!("{}{}", context, quote_weird(k));
                 if !flat.is_empty() || i > 0 {
                     write!(w, "\n\n")?;
                 }
-                // TODO omit unnecessary headers
                 match v {
-                    toml::Value::Table(table) => {
+                    Value::Object(obj) => {
                         write_with_color!(w, HEADER, "[{k}]")?;
-                        if !table.is_empty() {
+                        if !obj.is_empty() {
                             writeln!(w)?;
                         }
                         write_toml(w, &format!("{k}."), v)?;
                     }
-                    toml::Value::Array(arr) => {
+                    Value::Array(arr) => {
                         for (i, e) in arr.iter().enumerate() {
                             if i > 0 {
                                 write!(w, "\n\n")?;
                             }
-                            let toml::Value::Table(table) = e else {
+                            let Value::Object(obj) = e else {
                                 unreachable!("arr only contains tables by construction");
                             };
                             write_with_color!(w, HEADER, "[[{k}]]")?;
-                            if !table.is_empty() {
+                            if !obj.is_empty() {
                                 writeln!(w)?;
                             }
                             write_toml(w, &format!("{k}."), e)?;
@@ -287,7 +243,7 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &toml::Value) -> Re
                 }
             }
         }
-        toml::Value::String(_) => write_with_color!(w, STR, "{value}")?,
+        Value::String(_) => write_with_color!(w, STR, "{value}")?,
         _ => write!(w, "{value}")?,
     }
     Ok(())
@@ -295,24 +251,21 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &toml::Value) -> Re
 
 pub fn json(s: &str) -> Result<()> {
     let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
-    let value = serde_json::from_str::<serde_json::Value>(s)?;
-    write_json(&mut stdout, 0, &value)?;
+    write_json(&mut stdout, 0, &s.parse()?)?;
     writeln!(&mut stdout)?;
     Ok(())
 }
 
 pub fn yaml(s: &str) -> Result<()> {
     let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
-    let value = serde_json::from_str::<serde_yaml::Value>(s)?;
-    write_yaml(&mut stdout, 0, false, &value)?;
+    write_yaml(&mut stdout, 0, false, &s.parse()?)?;
     writeln!(&mut stdout)?;
     Ok(())
 }
 
 pub fn toml(s: &str) -> Result<()> {
     let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
-    let value = serde_json::from_str::<toml::Value>(s)?;
-    write_toml(&mut stdout, "", &value)?;
+    write_toml(&mut stdout, "", &s.parse()?)?;
     writeln!(&mut stdout)?;
     Ok(())
 }
