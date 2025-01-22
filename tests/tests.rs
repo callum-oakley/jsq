@@ -4,7 +4,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use anyhow::{Context, Result};
+use anyhow::{ensure, Context, Result};
 
 #[derive(PartialEq, Debug)]
 struct Output {
@@ -47,6 +47,13 @@ where
     })
 }
 
+fn convert(flags: &str, stdin: &str) -> Result<String> {
+    let res = run(&[flags], stdin, [])?;
+    ensure!(res.status_code == 0);
+    ensure!(res.stderr == "");
+    Ok(res.stdout)
+}
+
 fn ok(stdout: &str) -> Output {
     Output {
         status_code: 0,
@@ -65,6 +72,9 @@ fn err(stderr: &str) -> Output {
 
 #[test]
 fn test() -> Result<()> {
+    let cargo_toml = include_str!("../Cargo.toml").replace("\r\n", "\n");
+    let publish_yml = include_str!("../.github/workflows/publish.yml").replace("\r\n", "\n");
+
     assert!(run(&[], "", [])?
         .stderr
         .starts_with("Evaluate a JavaScript function and print the result"));
@@ -115,32 +125,34 @@ fn test() -> Result<()> {
     assert_eq!(
         run(
             &["-y", "$.jobs['get-version']['runs-on']"],
-            include_str!("../.github/workflows/publish.yml"),
+            &publish_yml,
             []
         )?,
         ok("ubuntu-latest\n")
     );
 
-    assert_eq!(
-        run(
-            &["-yY"],
-            include_str!("../.github/workflows/publish.yml"),
-            []
-        )?,
-        ok(&include_str!("../.github/workflows/publish.yml").replace("\r\n", "\n"))
-    );
+    assert_eq!(run(&["-yY"], &publish_yml, [])?, ok(&publish_yml));
 
     assert_eq!(
-        run(&["-t", "$.package.name"], include_str!("../Cargo.toml"), [])?,
+        run(&["-t", "$.package.name"], &cargo_toml, [])?,
         ok("jfn\n")
     );
 
+    assert_eq!(run(&["-tT"], &cargo_toml, [])?, ok(&cargo_toml));
+
+    assert_eq!(run(&["-J", "undefined"], "", [])?, ok("undefined\n"));
+    assert_eq!(run(&["-Y", "undefined"], "", [])?, ok("undefined\n"));
+    assert_eq!(run(&["-T", "undefined"], "", [])?, ok("undefined\n"));
+
     assert_eq!(
-        run(&["-tT"], include_str!("../Cargo.toml"), [])?,
-        ok(&include_str!("../Cargo.toml").replace("\r\n", "\n"))
+        convert("-tY", &convert("-jT", &convert("-yJ", &publish_yml)?)?)?,
+        publish_yml
     );
 
-    // TODO test round trips yaml -> json -> toml -> yaml and yaml -> toml -> json -> yaml
+    assert_eq!(
+        convert("-jY", &convert("-tJ", &convert("-yT", &publish_yml)?)?)?,
+        publish_yml
+    );
 
     Ok(())
 }

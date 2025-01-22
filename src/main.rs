@@ -82,11 +82,12 @@ fn try_main() -> Result<()> {
     }
 
     let res = v8::eval(options)?;
-    if args.json_out {
+    // undefined is a valid output of JSON.stringify
+    if args.json_out && res != "undefined" {
         print::json(&res).context("printing JSON")?;
-    } else if args.yaml_out {
+    } else if args.yaml_out && res != "undefined" {
         print::yaml(&res).context("printing YAML")?;
-    } else if args.toml_out {
+    } else if args.toml_out && res != "undefined" {
         print::toml(&res).context("printing TOML")?;
     } else if res.ends_with('\n') {
         print!("{res}");
