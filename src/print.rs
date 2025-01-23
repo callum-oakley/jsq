@@ -212,7 +212,6 @@ fn write_toml_inline(w: &mut impl WriteColor, value: &Value) -> Result<()> {
     Ok(())
 }
 
-// TODO omit unnecessary headers
 // TODO write objects with a single key using a dotted key rather than a new header
 fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<()> {
     fn is_object_array(value: &Value) -> bool {
@@ -223,19 +222,22 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<(
         }
     }
 
+    fn should_nest(value: &Value) -> bool {
+        value.is_object() || is_object_array(value)
+    }
+
     match value {
         Value::Array(_) => write_toml_inline(w, value)?,
         Value::Object(obj) => {
             let obj = obj.iter().filter(|(_, v)| !v.is_null()).collect::<Vec<_>>();
-            let mut flat = Vec::new();
-            let mut nested = Vec::new();
-            for (k, v) in obj {
-                if v.is_object() || is_object_array(v) {
-                    nested.push((k, v));
-                } else {
-                    flat.push((k, v));
-                }
-            }
+            let flat = obj
+                .iter()
+                .filter(|(_, v)| !should_nest(v))
+                .collect::<Vec<_>>();
+            let nested = obj
+                .iter()
+                .filter(|(_, v)| should_nest(v))
+                .collect::<Vec<_>>();
 
             for (i, &(k, v)) in flat.iter().enumerate() {
                 write_with_color!(w, KEY, "{}", toml_key(k))?;
@@ -253,9 +255,8 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<(
                 }
                 match v {
                     Value::Object(obj) => {
-                        write_with_color!(w, HEADER, "[{k}]")?;
-                        if !obj.is_empty() {
-                            writeln!(w)?;
+                        if obj.iter().any(|(_, v)| !should_nest(v)) {
+                            write_with_color!(w, HEADER, "[{k}]\n")?;
                         }
                         write_toml(w, &format!("{k}."), v)?;
                     }
