@@ -3,7 +3,7 @@ use std::{
     sync::LazyLock,
 };
 
-use anyhow::{Error, Result};
+use anyhow::{bail, Error, Result};
 use regex::Regex;
 use serde_json::Value;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
@@ -81,6 +81,7 @@ fn write_json(w: &mut impl WriteColor, depth: usize, value: &Value) -> Result<()
 
 // Conservative quoting to try and cover strings that need quoting in both YAML and TOML. No harm in
 // quoting more than necessary.
+// TODO split out a separate, less conservative function for YAML.
 fn quote_weird(s: &str) -> String {
     static RE: LazyLock<Regex> =
         LazyLock::new(|| Regex::new(r"^[A-Za-z][A-Za-z0-9_\-]*$").unwrap());
@@ -146,6 +147,7 @@ fn write_yaml(w: &mut impl WriteColor, depth: usize, obj_value: bool, value: &Va
 fn write_toml_inline(w: &mut impl WriteColor, value: &Value) -> Result<()> {
     match value {
         Value::Array(arr) => {
+            let arr = arr.iter().filter(|v| !v.is_null()).collect::<Vec<_>>();
             write!(w, "[")?;
             for (i, e) in arr.iter().enumerate() {
                 write_toml_inline(w, e)?;
@@ -156,6 +158,7 @@ fn write_toml_inline(w: &mut impl WriteColor, value: &Value) -> Result<()> {
             write!(w, "]")?;
         }
         Value::Object(obj) => {
+            let obj = obj.iter().filter(|(_, v)| !v.is_null()).collect::<Vec<_>>();
             write!(w, "{{")?;
             for (i, (k, v)) in obj.iter().enumerate() {
                 write_with_color!(w, KEY, " {}", quote_weird(k))?;
@@ -177,13 +180,9 @@ fn write_toml_inline(w: &mut impl WriteColor, value: &Value) -> Result<()> {
 // TODO omit unnecessary headers
 // TODO write objects with a single key using a dotted key rather than a new header
 fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<()> {
-    fn is_object(value: &Value) -> bool {
-        matches!(value, Value::Object(_))
-    }
-
     fn is_object_array(value: &Value) -> bool {
         if let Value::Array(arr) = value {
-            arr.iter().all(is_object)
+            arr.iter().all(Value::is_object)
         } else {
             false
         }
@@ -192,10 +191,11 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<(
     match value {
         Value::Array(_) => write_toml_inline(w, value)?,
         Value::Object(obj) => {
+            let obj = obj.iter().filter(|(_, v)| !v.is_null()).collect::<Vec<_>>();
             let mut flat = Vec::new();
             let mut nested = Vec::new();
             for (k, v) in obj {
-                if is_object(v) || is_object_array(v) {
+                if v.is_object() || is_object_array(v) {
                     nested.push((k, v));
                 } else {
                     flat.push((k, v));
@@ -230,7 +230,7 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<(
                                 write!(w, "\n\n")?;
                             }
                             let Value::Object(obj) = e else {
-                                unreachable!("arr only contains tables by construction");
+                                unreachable!("arr only contains objects by construction");
                             };
                             write_with_color!(w, HEADER, "[[{k}]]")?;
                             if !obj.is_empty() {
@@ -239,11 +239,12 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<(
                             write_toml(w, &format!("{k}."), e)?;
                         }
                     }
-                    _ => unreachable!("nested contains tables and arrays by construction"),
+                    _ => unreachable!("nested contains objects and arrays by construction"),
                 }
             }
         }
         Value::String(_) => write_with_color!(w, STR, "{value}")?,
+        Value::Null => bail!("can't convert null to TOML"),
         _ => write!(w, "{value}")?,
     }
     Ok(())
