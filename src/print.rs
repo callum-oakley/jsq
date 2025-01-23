@@ -79,16 +79,43 @@ fn write_json(w: &mut impl WriteColor, depth: usize, value: &Value) -> Result<()
     Ok(())
 }
 
-// Conservative quoting to try and cover strings that need quoting in both YAML and TOML. No harm in
-// quoting more than necessary.
-// TODO split out a separate, less conservative function for YAML.
-fn quote_weird(s: &str) -> String {
-    static RE: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"^[A-Za-z][A-Za-z0-9_\-]*$").unwrap());
-    if RE.is_match(s) {
+fn quote(s: &str) -> String {
+    Value::String(s.to_string()).to_string()
+}
+
+fn yaml_flow_string(s: &str) -> String {
+    static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[\u{20}-\u{7e}]+$").unwrap());
+    if RE.is_match(s)
+        && !s.starts_with(|c: char| {
+            c.is_whitespace() || c.is_ascii_digit() || "-?:,[]{}#&*!|>'\"%@`+.".contains(c)
+        })
+        && !s.contains(": ")
+        && !s.contains(" #")
+        && !s.ends_with(char::is_whitespace)
+    {
         s.to_string()
     } else {
-        Value::String(s.to_string()).to_string()
+        quote(s)
+    }
+}
+
+fn yaml_block_string(depth: usize, s: &str) -> String {
+    let mut res = String::from("|");
+    if s.starts_with(char::is_whitespace) {
+        res.push_str(&format!("{TAB_WIDTH}"));
+    }
+    for line in s.lines() {
+        res.push_str(&format!("\n{}{}", " ".repeat(depth * TAB_WIDTH), line));
+    }
+    res
+}
+
+fn yaml_string(depth: usize, s: &str) -> String {
+    static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[\u{20}-\u{7e}\n]+$").unwrap());
+    if s.contains('\n') && RE.is_match(s) {
+        yaml_block_string(depth, s)
+    } else {
+        yaml_flow_string(s)
     }
 }
 
@@ -121,7 +148,7 @@ fn write_yaml(w: &mut impl WriteColor, depth: usize, obj_value: bool, value: &Va
                     if i > 0 || obj_value {
                         write!(w, "\n{}", " ".repeat(depth * TAB_WIDTH))?;
                     }
-                    write_with_color!(w, KEY, "{}", quote_weird(k))?;
+                    write_with_color!(w, KEY, "{}", yaml_flow_string(k))?;
                     write!(w, ":")?;
                     write_yaml(w, depth + 1, true, v)?;
                 }
@@ -131,8 +158,7 @@ fn write_yaml(w: &mut impl WriteColor, depth: usize, obj_value: bool, value: &Va
             if obj_value {
                 write!(w, " ")?;
             }
-            // TODO block scalars
-            write_with_color!(w, STR, "{}", quote_weird(s))?;
+            write_with_color!(w, STR, "{}", yaml_string(depth, s))?;
         }
         _ => {
             if obj_value {
@@ -142,6 +168,15 @@ fn write_yaml(w: &mut impl WriteColor, depth: usize, obj_value: bool, value: &Va
         }
     }
     Ok(())
+}
+
+fn toml_key(s: &str) -> String {
+    static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z0-9_\-]+$").unwrap());
+    if RE.is_match(s) {
+        s.to_string()
+    } else {
+        quote(s)
+    }
 }
 
 fn write_toml_inline(w: &mut impl WriteColor, value: &Value) -> Result<()> {
@@ -161,7 +196,7 @@ fn write_toml_inline(w: &mut impl WriteColor, value: &Value) -> Result<()> {
             let obj = obj.iter().filter(|(_, v)| !v.is_null()).collect::<Vec<_>>();
             write!(w, "{{")?;
             for (i, (k, v)) in obj.iter().enumerate() {
-                write_with_color!(w, KEY, " {}", quote_weird(k))?;
+                write_with_color!(w, KEY, " {}", toml_key(k))?;
                 write!(w, " = ")?;
                 write_toml_inline(w, v)?;
                 if i == obj.len() - 1 {
@@ -203,7 +238,7 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<(
             }
 
             for (i, &(k, v)) in flat.iter().enumerate() {
-                write_with_color!(w, KEY, "{}", quote_weird(k))?;
+                write_with_color!(w, KEY, "{}", toml_key(k))?;
                 write!(w, " = ")?;
                 write_toml(w, context, v)?;
                 if i != flat.len() - 1 {
@@ -212,7 +247,7 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<(
             }
 
             for (i, &(k, v)) in nested.iter().enumerate() {
-                let k = format!("{}{}", context, quote_weird(k));
+                let k = format!("{}{}", context, toml_key(k));
                 if !flat.is_empty() || i > 0 {
                     write!(w, "\n\n")?;
                 }

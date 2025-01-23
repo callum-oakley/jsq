@@ -70,8 +70,6 @@ fn try_main() -> Result<()> {
     }
 
     if args.yaml_in {
-        // TODO serde_yaml is deprecated.
-        // Keeping an eye on https://github.com/saphyr-rs/saphyr/issues/1.
         options.stdin = serde_yaml::from_str::<serde_json::Value>(&options.stdin)
             .context("parsing YAML")?
             .to_string();
