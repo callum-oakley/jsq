@@ -52,6 +52,8 @@ jobs:
       - get-version
       - release-create
     runs-on: ${{ matrix.runs-on }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     strategy:
       matrix:
         include:
@@ -64,8 +66,6 @@ jobs:
           - os: windows
             runs-on: windows-latest
             bin: target/release/jfn.exe
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable

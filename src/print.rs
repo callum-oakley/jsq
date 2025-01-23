@@ -212,18 +212,28 @@ fn write_toml_inline(w: &mut impl WriteColor, value: &Value) -> Result<()> {
     Ok(())
 }
 
-// TODO write objects with a single key using a dotted key rather than a new header
 fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<()> {
-    fn is_object_array(value: &Value) -> bool {
-        if let Value::Array(arr) = value {
+    fn should_nest(value: &Value) -> bool {
+        if let Value::Object(obj) = value {
+            let values = obj.values().filter(|v| !v.is_null()).collect::<Vec<_>>();
+            values.len() > 1 || (values.len() == 1 && should_nest(values[0]))
+        } else if let Value::Array(arr) = value {
             arr.iter().all(Value::is_object)
         } else {
             false
         }
     }
 
-    fn should_nest(value: &Value) -> bool {
-        value.is_object() || is_object_array(value)
+    fn toml_key_value<'a>(k: &'a str, v: &'a Value) -> (String, &'a Value) {
+        let k = toml_key(k);
+        if let Value::Object(obj) = v {
+            let obj = obj.iter().filter(|(_, v)| !v.is_null()).collect::<Vec<_>>();
+            if obj.len() == 1 {
+                let (inner_k, v) = toml_key_value(obj[0].0, obj[0].1);
+                return (format!("{k}.{inner_k}"), v);
+            }
+        }
+        (k, v)
     }
 
     match value {
@@ -240,9 +250,10 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<(
                 .collect::<Vec<_>>();
 
             for (i, &(k, v)) in flat.iter().enumerate() {
-                write_with_color!(w, KEY, "{}", toml_key(k))?;
+                let (k, v) = toml_key_value(k, v);
+                write_with_color!(w, KEY, "{k}")?;
                 write!(w, " = ")?;
-                write_toml(w, context, v)?;
+                write_toml_inline(w, v)?;
                 if i != flat.len() - 1 {
                     writeln!(w)?;
                 }
@@ -279,6 +290,7 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<(
                 }
             }
         }
+        // TODO TOML multiline strings
         Value::String(_) => write_with_color!(w, STR, "{value}")?,
         Value::Null => bail!("can't convert null to TOML"),
         _ => write!(w, "{value}")?,
