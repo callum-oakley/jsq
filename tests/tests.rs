@@ -73,7 +73,7 @@ fn err(stderr: &str) -> Output {
 #[test]
 fn test() -> Result<()> {
     let cargo_toml = include_str!("../Cargo.toml").replace("\r\n", "\n");
-    let publish_yml = include_str!("../.github/workflows/publish.yml").replace("\r\n", "\n");
+    let publish_yaml = include_str!("../.github/workflows/publish.yaml").replace("\r\n", "\n");
 
     assert!(run(&[], "", [])?
         .stderr
@@ -125,13 +125,13 @@ fn test() -> Result<()> {
     assert_eq!(
         run(
             &["-y", "$.jobs['get-version']['runs-on']"],
-            &publish_yml,
+            &publish_yaml,
             []
         )?,
         ok("ubuntu-latest\n")
     );
 
-    assert_eq!(run(&["-yY"], &publish_yml, [])?, ok(&publish_yml));
+    assert_eq!(run(&["-yY"], &publish_yaml, [])?, ok(&publish_yaml));
 
     assert_eq!(
         run(&["-t", "$.package.name"], &cargo_toml, [])?,
@@ -145,13 +145,13 @@ fn test() -> Result<()> {
     assert_eq!(run(&["-T", "undefined"], "", [])?, ok("undefined\n"));
 
     assert_eq!(
-        convert("-tY", &convert("-jT", &convert("-yJ", &publish_yml)?)?)?,
-        publish_yml
+        convert("-tY", &convert("-jT", &convert("-yJ", &publish_yaml)?)?)?,
+        publish_yaml
     );
 
     assert_eq!(
-        convert("-jY", &convert("-tJ", &convert("-yT", &publish_yml)?)?)?,
-        publish_yml
+        convert("-jY", &convert("-tJ", &convert("-yT", &publish_yaml)?)?)?,
+        publish_yaml
     );
 
     assert_eq!(
