@@ -179,6 +179,15 @@ fn toml_key(s: &str) -> String {
     }
 }
 
+fn toml_string(s: &str) -> String {
+    static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[\u{20}-\u{7e}\n]+$").unwrap());
+    if s.contains('\n') && RE.is_match(s) && !s.contains("'''") {
+        format!("'''\n{s}'''")
+    } else {
+        quote(s)
+    }
+}
+
 fn write_toml_inline(w: &mut impl WriteColor, value: &Value) -> Result<()> {
     match value {
         Value::Array(arr) => {
@@ -290,8 +299,7 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<(
                 }
             }
         }
-        // TODO TOML multiline strings
-        Value::String(_) => write_with_color!(w, STR, "{value}")?,
+        Value::String(s) => write_with_color!(w, STR, "{}", toml_string(s))?,
         Value::Null => bail!("can't convert null to TOML"),
         _ => write!(w, "{value}")?,
     }
