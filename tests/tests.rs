@@ -164,5 +164,7 @@ fn test() -> Result<()> {
         cargo_toml
     );
 
+    assert_eq!(convert("-jY", "{ \"foo\": \"true\" }")?, "foo: \"true\"\n");
+
     Ok(())
 }

@@ -8,7 +8,6 @@ repository = "https://github.com/callum-oakley/jfn"
 
 [dependencies]
 anyhow = "1.0.95"
-regex = "1.11.1"
 serde_yaml = "0.9.34"
 termcolor = "1.4.1"
 v8 = "130.0.5"

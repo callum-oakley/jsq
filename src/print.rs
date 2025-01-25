@@ -4,7 +4,6 @@ use std::{
 };
 
 use anyhow::{bail, Error, Result};
-use regex::Regex;
 use serde_json::Value;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
@@ -84,18 +83,21 @@ fn quote(s: &str) -> String {
 }
 
 fn yaml_flow_string(s: &str) -> String {
-    static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[\u{20}-\u{7e}]+$").unwrap());
-    if RE.is_match(s)
-        && !s.starts_with(|c: char| {
-            c.is_whitespace() || c.is_ascii_digit() || "-?:,[]{}#&*!|>'\"%@`+.".contains(c)
-        })
-        && !s.contains(": ")
-        && !s.contains(" #")
-        && !s.ends_with(char::is_whitespace)
+    if s.starts_with(char::is_whitespace)
+        || s.ends_with(char::is_whitespace)
+        // Indicator characters
+        || s.starts_with(|c: char| "-?:,[]{}#&*!|>'\"%@`".contains(c))
+        // Characters that may start a number
+        || s.starts_with(|c: char| "+-.".contains(c) || c.is_ascii_digit())
+        // Strings that would be parsed as null, true, or false if unquoted.
+        || ["null", "~", "true", "false"].contains(&s.to_lowercase().as_str())
+        || s.contains(char::is_control)
+        || s.contains(": ")
+        || s.contains(" #")
     {
-        s.to_string()
-    } else {
         quote(s)
+    } else {
+        s.to_string()
     }
 }
 
@@ -111,8 +113,7 @@ fn yaml_block_string(depth: usize, s: &str) -> String {
 }
 
 fn yaml_string(depth: usize, s: &str) -> String {
-    static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[\u{20}-\u{7e}\n]+$").unwrap());
-    if s.contains('\n') && RE.is_match(s) {
+    if s.contains('\n') && !s.contains(|c: char| c.is_control() && c != '\n') {
         yaml_block_string(depth, s)
     } else {
         yaml_flow_string(s)
@@ -171,8 +172,13 @@ fn write_yaml(w: &mut impl WriteColor, depth: usize, obj_value: bool, value: &Va
 }
 
 fn toml_key(s: &str) -> String {
-    static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[A-Za-z0-9_\-]+$").unwrap());
-    if RE.is_match(s) {
+    // https://toml.io/en/v1.0.0#keys
+    // A bare key must be non-empty.
+    // Bare keys may only contain ASCII letters, ASCII digits, underscores, and dashes.
+    if !s.is_empty()
+        && s.chars()
+            .all(|c| c.is_ascii_alphabetic() || c.is_ascii_digit() || c == '_' || c == '-')
+    {
         s.to_string()
     } else {
         quote(s)
@@ -180,8 +186,8 @@ fn toml_key(s: &str) -> String {
 }
 
 fn toml_string(s: &str) -> String {
-    static RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^[\u{20}-\u{7e}\n]+$").unwrap());
-    if s.contains('\n') && RE.is_match(s) && !s.contains("'''") {
+    if s.contains('\n') && !s.contains(|c: char| c.is_control() && c != '\n') && !s.contains("'''")
+    {
         format!("'''\n{s}'''")
     } else {
         quote(s)
