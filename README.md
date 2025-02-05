@@ -49,9 +49,9 @@ the power of "Immortality":
 
 ## Semantics
 
-The provided `BODY` is evaluated by [Boa][] as part of the expression `$ => BODY`. In particular,
-this means that `BODY` must have the syntax of an [Arrow Function][] body: it can either be a single
-expression, or multiple statements enclosed in braces with an explicit return statement.
+The provided `BODY` is evaluated by [Boa][] as part of the expression `(() => BODY)()`. In
+particular, this means that `BODY` must have the syntax of an [Arrow Function][] body: it can either
+be a single expression, or multiple statements enclosed in braces with an explicit `return`.
 
 `$` contains the result of reading STDIN as text, or of parsing it as JSON if the `-j` flag is set,
 YAML if the `-y` flag is set, or TOML if the `-t` flag is set. If STDIN [is a terminal][] then `$`
