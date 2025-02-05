@@ -49,7 +49,7 @@ the power of "Immortality":
 
 ## Semantics
 
-The provided `BODY` is evaluated by [V8][] as part of the expression `$ => BODY`. In particular,
+The provided `BODY` is evaluated by [Boa][] as part of the expression `$ => BODY`. In particular,
 this means that `BODY` must have the syntax of an [Arrow Function][] body: it can either be a single
 expression, or multiple statements enclosed in braces with an explicit return statement.
 
@@ -67,7 +67,7 @@ Environment variables are available in `BODY` prefixed by `$`. e.g. `USER` is av
 JavaScript is a convenient language with which to process JSON (which stands for "JavaScript Object
 Notation" after all), but the boilerplate of reading from STDIN, parsing, and writing to STDOUT
 makes many could-be "one-liners" significantly more involved than they need to be. jfn provides a
-thin wrapper around V8 which handles this boilerplate and makes it more ergonomic to sprinkle a
+thin wrapper around Boa which handles this boilerplate and makes it more ergonomic to sprinkle a
 little JavaScript in to a shell script.
 
 jfn can be used for many of the same tasks as [jq][]. A given jq command is often a little shorter
@@ -94,10 +94,10 @@ Alternatively, there are binaries for Linux, MacOS, and Windows [attached to eac
 [a bunch of superheros]: https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json
 [Arrow Function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
 [attached to each release]: https://github.com/callum-oakley/jfn/releases
+[Boa]: https://boajs.dev/
 [brew]: https://brew.sh/
 [cargo]: https://www.rust-lang.org/tools/install
 [cast to a string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/toString
 [is a terminal]: https://doc.rust-lang.org/beta/std/io/trait.IsTerminal.html#tymethod.is_terminal
 [jq]: https://jqlang.github.io/jq/
 [translated jq tutorial]: /tutorial.md
-[V8]: https://v8.dev/

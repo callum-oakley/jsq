@@ -1,16 +1,14 @@
 #![warn(clippy::pedantic)]
 
+mod boa;
 mod print;
-mod v8;
 
-use std::{
-    env,
-    io::{self, IsTerminal, Read},
-    process,
-};
+use std::io::{IsTerminal, Read};
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
+use boa::Options;
 use clap::Parser;
+use serde_json::Value;
 
 /// Evaluate a JavaScript function and print the result.
 #[derive(Parser)]
@@ -56,30 +54,36 @@ struct Args {
 fn try_main() -> Result<()> {
     let args = Args::parse();
 
-    let mut options = v8::Options {
-        parse: args.json_in || args.yaml_in || args.toml_in,
-        stringify: args.json_out || args.yaml_out || args.toml_out,
-        body: &args.body,
-        stdin: String::new(),
-        env: env::vars(),
-    };
+    let mut input = String::new();
 
-    let mut stdin = io::stdin();
+    let mut stdin = std::io::stdin();
     if !stdin.is_terminal() {
-        stdin.read_to_string(&mut options.stdin)?;
+        stdin.read_to_string(&mut input)?;
     }
 
-    if args.yaml_in {
-        options.stdin = serde_yaml::from_str::<serde_json::Value>(&options.stdin)
+    if args.json_in {
+        input = serde_json::from_str::<Value>(&input)
+            .context("parsing JSON")?
+            .to_string();
+    } else if args.yaml_in {
+        input = serde_yaml::from_str::<Value>(&input)
             .context("parsing YAML")?
             .to_string();
     } else if args.toml_in {
-        options.stdin = toml::from_str::<serde_json::Value>(&options.stdin)
+        input = toml::from_str::<Value>(&input)
             .context("parsing TOML")?
             .to_string();
     }
 
-    let res = v8::eval(options)?;
+    let res = boa::eval(Options {
+        input: &input,
+        env: std::env::vars(),
+        body: &args.body,
+        parse: args.json_in || args.yaml_in || args.toml_in,
+        stringify: args.json_out || args.yaml_out || args.toml_out,
+    })
+    .map_err(|err| anyhow!("{err}"))?;
+
     // undefined is a valid output of JSON.stringify
     if args.json_out && res != "undefined" {
         print::json(&res).context("printing JSON")?;
@@ -99,6 +103,6 @@ fn try_main() -> Result<()> {
 fn main() {
     if let Err(err) = try_main() {
         print::error(&err).expect("printing error");
-        process::exit(1);
+        std::process::exit(1);
     }
 }

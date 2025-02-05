@@ -114,21 +114,17 @@ fn test() -> Result<()> {
 
     assert_eq!(
         run(&["const x = 5; return x * x"], "", [])?,
-        err("error: compiling script: SyntaxError: Unexpected token 'const'\n")
+        err("error: evaluating function: SyntaxError: unexpected token 'const', primary expression at line 1, col 8\n")
     );
 
     assert_eq!(
         run(&["-j"], "foo", [])?,
-        err("error: parsing JSON: SyntaxError: Unexpected token 'o', \"foo\" is not valid JSON\n")
+        err("error: parsing JSON: expected ident at line 1 column 2\n")
     );
 
     assert_eq!(
-        run(
-            &["-y", "$.jobs['get-version']['runs-on']"],
-            &publish_yaml,
-            []
-        )?,
-        ok("ubuntu-latest\n")
+        run(&["-y", "$.jobs.info['runs-on']"], &publish_yaml, [])?,
+        ok("macos-latest\n")
     );
 
     assert_eq!(run(&["-yY"], &publish_yaml, [])?, ok(&publish_yaml));
@@ -143,6 +139,9 @@ fn test() -> Result<()> {
     assert_eq!(run(&["-J", "undefined"], "", [])?, ok("undefined\n"));
     assert_eq!(run(&["-Y", "undefined"], "", [])?, ok("undefined\n"));
     assert_eq!(run(&["-T", "undefined"], "", [])?, ok("undefined\n"));
+    assert_eq!(run(&["-J", "() => {}"], "", [])?, ok("undefined\n"));
+    assert_eq!(run(&["-Y", "() => {}"], "", [])?, ok("undefined\n"));
+    assert_eq!(run(&["-T", "() => {}"], "", [])?, ok("undefined\n"));
 
     assert_eq!(
         convert("-tY", &convert("-jT", &convert("-yJ", &publish_yaml)?)?)?,
