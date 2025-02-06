@@ -109,12 +109,12 @@ fn test() -> Result<()> {
 
     assert_eq!(
         run(&["foo"], "", [])?,
-        err("error: evaluating function: ReferenceError: foo is not defined\n")
+        err("error: ReferenceError: foo is not defined\n")
     );
 
     assert_eq!(
         run(&["const x = 5; return x * x"], "", [])?,
-        err("error: evaluating function: SyntaxError: unexpected token 'const', primary expression at line 1, col 8\n")
+        err("error: SyntaxError: unexpected token 'const', primary expression at line 1, col 8\n")
     );
 
     assert_eq!(

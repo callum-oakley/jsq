@@ -1,5 +1,5 @@
-use anyhow::{anyhow, Result};
-use boa_engine::{property::Attribute, Context, JsResult, JsString, JsValue, Source};
+use anyhow::Result;
+use boa_engine::{property::Attribute, Context, JsString, JsValue, Source};
 
 pub struct Options<'a, I> {
     pub input: &'a str,
@@ -7,16 +7,6 @@ pub struct Options<'a, I> {
     pub body: &'a str,
     pub parse: bool,
     pub stringify: bool,
-}
-
-trait ContextExt<T> {
-    fn context(self, context: &str) -> Result<T>;
-}
-
-impl<T> ContextExt<T> for JsResult<T> {
-    fn context(self, context: &str) -> Result<T> {
-        self.map_err(|err| anyhow!("{context}: {err}"))
-    }
 }
 
 pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Result<String> {
@@ -29,12 +19,12 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
             JsValue::new(JsString::from(options.input)),
             Attribute::all(),
         )
-        .context("registering global property")?;
+        .map_err(|err| err.into_erased(&mut context))?;
 
     if options.parse {
         context
             .eval(Source::from_bytes("$ = JSON.parse($)"))
-            .context("parsing input as JSON")?;
+            .map_err(|err| err.into_erased(&mut context))?;
     }
 
     for (k, v) in options.env {
@@ -44,7 +34,7 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
                 JsString::from(v),
                 Attribute::all(),
             )
-            .context("registering global property")?;
+            .map_err(|err| err.into_erased(&mut context))?;
     }
 
     let mut source = format!("(() => {})()", options.body);
@@ -54,10 +44,10 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
 
     let res = context
         .eval(Source::from_bytes(&source))
-        .context("evaluating function")?;
+        .map_err(|err| err.into_erased(&mut context))?;
 
     Ok(res
         .to_string(&mut context)
-        .context("converting to string")?
+        .map_err(|err| err.into_erased(&mut context))?
         .to_std_string()?)
 }
