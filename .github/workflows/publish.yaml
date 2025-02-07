@@ -35,7 +35,7 @@ jobs:
           version="$(cat Cargo.toml | jfn -t '$.package.version')"
           description="$(cat Cargo.toml | jfn -t '$.package.description')"
           published="$(
-            curl -s https://crates.io/api/v1/crates/${{ needs.info.outputs.name }} |
+            curl -s "https://crates.io/api/v1/crates/${name}" |
               version="${version}" jfn -j '$.versions?.map(a => a.num).includes($version)'
           )"
           echo name="${name}" | tee -a "${GITHUB_OUTPUT}"
