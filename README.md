@@ -75,6 +75,15 @@ than the equivalent jfn command, but if (like the author) you find yourself ofte
 syntax of jq, and you already know JavaScript, you might find jfn easier to use. To see how jfn
 compares to jq, check out the [translated jq tutorial][].
 
+## Built-in functions
+
+As well as the usual built-in functions provided by the engine, the following are available:
+
+- `YAML.parse` – like `JSON.parse` but for YAML
+- `YAML.stringify` – like `JSON.stringify` but for YAML
+- `TOML.parse` – like `JSON.parse` but for TOML
+- `TOML.stringify` – like `JSON.stringify` but for TOML
+
 ## Install
 
 With [brew][]:
