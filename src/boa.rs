@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context as _, Error, Result};
 use boa_engine::{
     object::ObjectInitializer, property::Attribute, Context, JsArgs, JsError, JsResult, JsString,
     JsValue, NativeFunction, Source,
@@ -27,22 +27,69 @@ trait ToJs<T> {
     fn to_js(self) -> JsResult<T>;
 }
 
-impl<T, E: std::error::Error> ToJs<T> for std::result::Result<T, E> {
+impl<T, E: Into<Error>> ToJs<T> for std::result::Result<T, E> {
     fn to_js(self) -> JsResult<T> {
-        self.map_err(JsError::from_rust)
+        self.map_err(|err| JsError::from_rust(&*err.into()))
     }
+}
+
+macro_rules! register_parse_and_stringify {
+    ($name:expr, $serde:ident, $context:expr) => {{
+        let obj = ObjectInitializer::new($context)
+            .function(
+                NativeFunction::from_fn_ptr(|_, args, context| {
+                    let s = args
+                        .get_or_undefined(0)
+                        .to_string(context)?
+                        .to_std_string()
+                        .to_js()?;
+                    let value = $serde::from_str::<Value>(&s).to_js()?;
+                    call_fn(
+                        "JSON.parse",
+                        &[JsValue::from(JsString::from(
+                            serde_json::to_string(&value).to_js()?,
+                        ))],
+                        context,
+                    )
+                    .to_js()
+                }),
+                JsString::from("parse"),
+                1,
+            )
+            .function(
+                NativeFunction::from_fn_ptr(|_, args, context| {
+                    let s = call_fn("JSON.stringify", args, context)
+                        .to_js()?
+                        .to_string(context)?
+                        .to_std_string()
+                        .to_js()?;
+                    let value = serde_json::from_str::<Value>(&s).to_js()?;
+                    Ok(JsValue::from(JsString::from(
+                        // TODO use print?
+                        $serde::to_string(&value).to_js()?,
+                    )))
+                }),
+                JsString::from("stringify"),
+                1,
+            )
+            .build();
+
+        $context
+            .register_global_property(JsString::from($name), obj, Attribute::all())
+            .to_anyhow($context)?;
+    }};
 }
 
 pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Result<String> {
     let mut context = Context::default();
     context.strict(true);
 
-    register_yaml(&mut context)?;
-    register_toml(&mut context)?;
+    register_parse_and_stringify!("YAML", serde_yaml, &mut context);
+    register_parse_and_stringify!("TOML", toml, &mut context);
 
     let mut input = JsValue::from(JsString::from(options.input));
     if options.parse {
-        input = call_fn("JSON.parse", &[input], &mut context).to_anyhow(&mut context)?;
+        input = call_fn("JSON.parse", &[input], &mut context)?;
     }
     context
         .register_global_property(JsString::from("$"), input, Attribute::all())
@@ -63,7 +110,7 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
         .to_anyhow(&mut context)?;
 
     if options.stringify {
-        res = call_fn("JSON.stringify", &[res], &mut context).to_anyhow(&mut context)?;
+        res = call_fn("JSON.stringify", &[res], &mut context)?;
     }
 
     Ok(res
@@ -72,100 +119,12 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
         .to_std_string()?)
 }
 
-fn register_yaml(context: &mut Context) -> Result<()> {
-    let yaml = ObjectInitializer::new(context)
-        .function(
-            NativeFunction::from_fn_ptr(|_, args, context| {
-                let s = args
-                    .get_or_undefined(0)
-                    .to_string(context)?
-                    .to_std_string()
-                    .to_js()?;
-                let value = serde_yaml::from_str::<Value>(&s).to_js()?;
-                call_fn(
-                    "JSON.parse",
-                    &[JsValue::from(JsString::from(
-                        serde_json::to_string(&value).to_js()?,
-                    ))],
-                    context,
-                )
-            }),
-            JsString::from("parse"),
-            1,
-        )
-        .function(
-            NativeFunction::from_fn_ptr(|_, args, context| {
-                let s = call_fn("JSON.stringify", args, context)?
-                    .to_string(context)?
-                    .to_std_string()
-                    .to_js()?;
-                let value = serde_json::from_str::<Value>(&s).to_js()?;
-                Ok(JsValue::from(JsString::from(
-                    // TODO use print::yaml?
-                    serde_yaml::to_string(&value).to_js()?,
-                )))
-            }),
-            JsString::from("stringify"),
-            1,
-        )
-        .build();
-
+fn call_fn(name: &str, args: &[JsValue], context: &mut Context) -> Result<JsValue> {
     context
-        .register_global_property(JsString::from("YAML"), yaml, Attribute::all())
-        .to_anyhow(context)?;
-
-    Ok(())
-}
-
-fn register_toml(context: &mut Context) -> Result<()> {
-    let toml = ObjectInitializer::new(context)
-        .function(
-            NativeFunction::from_fn_ptr(|_, args, context| {
-                let s = args
-                    .get_or_undefined(0)
-                    .to_string(context)?
-                    .to_std_string()
-                    .to_js()?;
-                let value = toml::from_str::<Value>(&s).to_js()?;
-                call_fn(
-                    "JSON.parse",
-                    &[JsValue::from(JsString::from(
-                        serde_json::to_string(&value).to_js()?,
-                    ))],
-                    context,
-                )
-            }),
-            JsString::from("parse"),
-            1,
-        )
-        .function(
-            NativeFunction::from_fn_ptr(|_, args, context| {
-                let s = call_fn("JSON.stringify", args, context)?
-                    .to_string(context)?
-                    .to_std_string()
-                    .to_js()?;
-                let value = serde_json::from_str::<Value>(&s).to_js()?;
-                Ok(JsValue::from(JsString::from(
-                    // TODO use print::toml?
-                    toml::to_string(&value).to_js()?,
-                )))
-            }),
-            JsString::from("stringify"),
-            1,
-        )
-        .build();
-
-    context
-        .register_global_property(JsString::from("TOML"), toml, Attribute::all())
-        .to_anyhow(context)?;
-
-    Ok(())
-}
-
-fn call_fn(name: &str, args: &[JsValue], context: &mut Context) -> JsResult<JsValue> {
-    context
-        .eval(Source::from_bytes(name))?
+        .eval(Source::from_bytes(name))
+        .to_anyhow(context)?
         .as_callable()
-        .expect("function is callable")
+        .context("as callable")?
         .call(&JsValue::undefined(), args, context)
+        .to_anyhow(context)
 }
