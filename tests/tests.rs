@@ -165,5 +165,23 @@ fn test() -> Result<()> {
 
     assert_eq!(convert("-jY", "{ \"foo\": \"true\" }")?, "foo: \"true\"\n");
 
+    assert_eq!(
+        run(
+            &["YAML.stringify(YAML.parse($).defaults)"],
+            &publish_yaml,
+            []
+        )?,
+        ok("run:\n  shell: bash\n")
+    );
+
+    assert_eq!(
+        run(
+            &["TOML.stringify(TOML.parse($).dependencies.serde_json)"],
+            &cargo_toml,
+            []
+        )?,
+        ok("version = \"1.0.135\"\nfeatures = [\"preserve_order\"]\n")
+    );
+
     Ok(())
 }
