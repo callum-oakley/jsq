@@ -1,6 +1,7 @@
 #![warn(clippy::pedantic)]
 
 mod boa;
+mod parse;
 mod print;
 
 use std::io::{IsTerminal, Read};
@@ -8,7 +9,6 @@ use std::io::{IsTerminal, Read};
 use anyhow::{anyhow, Context, Result};
 use boa::Options;
 use clap::Parser;
-use serde_json::Value;
 
 /// Evaluate a JavaScript function and print the result.
 #[derive(Parser)]
@@ -62,17 +62,11 @@ fn try_main() -> Result<()> {
     }
 
     if args.json_in {
-        input = serde_json::from_str::<Value>(&input)
-            .context("parsing JSON")?
-            .to_string();
+        input = parse::json(&input)?;
     } else if args.yaml_in {
-        input = serde_yaml::from_str::<Value>(&input)
-            .context("parsing YAML")?
-            .to_string();
+        input = parse::yaml(&input)?;
     } else if args.toml_in {
-        input = toml::from_str::<Value>(&input)
-            .context("parsing TOML")?
-            .to_string();
+        input = parse::toml(&input)?;
     }
 
     let res = boa::eval(Options {
@@ -86,11 +80,11 @@ fn try_main() -> Result<()> {
 
     // undefined is a valid output of JSON.stringify
     if args.json_out && res != "undefined" {
-        print::json(&res).context("printing JSON")?;
+        print::json(&mut print::stdout(), &res).context("printing JSON")?;
     } else if args.yaml_out && res != "undefined" {
-        print::yaml(&res).context("printing YAML")?;
+        print::yaml(&mut print::stdout(), &res).context("printing YAML")?;
     } else if args.toml_out && res != "undefined" {
-        print::toml(&res).context("printing TOML")?;
+        print::toml(&mut print::stdout(), &res).context("printing TOML")?;
     } else if res.ends_with('\n') {
         print!("{res}");
     } else {
@@ -102,7 +96,7 @@ fn try_main() -> Result<()> {
 
 fn main() {
     if let Err(err) = try_main() {
-        print::error(&err).expect("printing error");
+        print::error(&mut print::stderr(), &err).expect("printing error");
         std::process::exit(1);
     }
 }

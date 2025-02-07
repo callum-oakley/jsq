@@ -1,11 +1,8 @@
-use std::{
-    io::{self, IsTerminal, Write},
-    sync::LazyLock,
-};
+use std::{io::IsTerminal, sync::LazyLock};
 
 use anyhow::{bail, Error, Result};
 use serde_json::Value;
-use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
+use termcolor::{Color, ColorChoice, ColorSpec, NoColor, StandardStream, WriteColor};
 
 const TAB_WIDTH: usize = 2;
 
@@ -312,30 +309,46 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<(
     Ok(())
 }
 
-pub fn json(s: &str) -> Result<()> {
-    let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
-    write_json(&mut stdout, 0, &s.parse()?)?;
-    writeln!(&mut stdout)?;
+pub fn json(w: &mut impl WriteColor, s: &str) -> Result<()> {
+    write_json(w, 0, &s.parse()?)?;
+    writeln!(w)?;
     Ok(())
 }
 
-pub fn yaml(s: &str) -> Result<()> {
-    let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
-    write_yaml(&mut stdout, 0, false, &s.parse()?)?;
-    writeln!(&mut stdout)?;
+pub fn yaml(w: &mut impl WriteColor, s: &str) -> Result<()> {
+    write_yaml(w, 0, false, &s.parse()?)?;
+    writeln!(w)?;
     Ok(())
 }
 
-pub fn toml(s: &str) -> Result<()> {
-    let mut stdout = StandardStream::stdout(color_choice(&io::stdout()));
-    write_toml(&mut stdout, "", &s.parse()?)?;
-    writeln!(&mut stdout)?;
+pub fn toml(w: &mut impl WriteColor, s: &str) -> Result<()> {
+    write_toml(w, "", &s.parse()?)?;
+    writeln!(w)?;
     Ok(())
 }
 
-pub fn error(err: &Error) -> Result<()> {
-    let mut stderr = StandardStream::stderr(color_choice(&io::stderr()));
-    write_with_color!(&mut stderr, ERR, "error")?;
-    writeln!(&mut stderr, ": {err:#}")?;
+pub fn error(w: &mut impl WriteColor, err: &Error) -> Result<()> {
+    write_with_color!(w, ERR, "error")?;
+    writeln!(w, ": {err:#}")?;
     Ok(())
+}
+
+pub fn stdout() -> StandardStream {
+    StandardStream::stdout(color_choice(&std::io::stdout()))
+}
+
+pub fn stderr() -> StandardStream {
+    StandardStream::stderr(color_choice(&std::io::stderr()))
+}
+
+pub fn yaml_to_string(s: &str) -> Result<String> {
+    let mut buf = Vec::new();
+    yaml(&mut NoColor::new(&mut buf), s)?;
+    Ok(String::from_utf8(buf)?)
+}
+
+pub fn toml_to_string(s: &str) -> Result<String> {
+    let mut buf = Vec::new();
+    toml(&mut NoColor::new(&mut buf), s)?;
+    Ok(String::from_utf8(buf)?)
 }

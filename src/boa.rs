@@ -3,7 +3,8 @@ use boa_engine::{
     object::ObjectInitializer, property::Attribute, Context, JsArgs, JsError, JsResult, JsString,
     JsValue, NativeFunction, Source,
 };
-use serde_json::Value;
+
+use crate::{parse, print};
 
 pub struct Options<'a, I> {
     pub input: &'a str,
@@ -34,20 +35,21 @@ impl<T, E: Into<Error>> ToJs<T> for std::result::Result<T, E> {
 }
 
 macro_rules! register_parse_and_stringify {
-    ($name:expr, $serde:ident, $context:expr) => {{
+    ($name:expr, $parse:expr, $print:expr, $context:expr) => {{
         let obj = ObjectInitializer::new($context)
             .function(
                 NativeFunction::from_fn_ptr(|_, args, context| {
-                    let s = args
-                        .get_or_undefined(0)
-                        .to_string(context)?
-                        .to_std_string()
-                        .to_js()?;
-                    let value = $serde::from_str::<Value>(&s).to_js()?;
                     call_fn(
                         "JSON.parse",
                         &[JsValue::from(JsString::from(
-                            serde_json::to_string(&value).to_js()?,
+                            $parse(
+                                &args
+                                    .get_or_undefined(0)
+                                    .to_string(context)?
+                                    .to_std_string()
+                                    .to_js()?,
+                            )
+                            .to_js()?,
                         ))],
                         context,
                     )
@@ -58,15 +60,15 @@ macro_rules! register_parse_and_stringify {
             )
             .function(
                 NativeFunction::from_fn_ptr(|_, args, context| {
-                    let s = call_fn("JSON.stringify", args, context)
-                        .to_js()?
-                        .to_string(context)?
-                        .to_std_string()
-                        .to_js()?;
-                    let value = serde_json::from_str::<Value>(&s).to_js()?;
                     Ok(JsValue::from(JsString::from(
-                        // TODO use print?
-                        $serde::to_string(&value).to_js()?,
+                        $print(
+                            &call_fn("JSON.stringify", args, context)
+                                .to_js()?
+                                .to_string(context)?
+                                .to_std_string()
+                                .to_js()?,
+                        )
+                        .to_js()?,
                     )))
                 }),
                 JsString::from("stringify"),
@@ -84,8 +86,8 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
     let mut context = Context::default();
     context.strict(true);
 
-    register_parse_and_stringify!("YAML", serde_yaml, &mut context);
-    register_parse_and_stringify!("TOML", toml, &mut context);
+    register_parse_and_stringify!("YAML", parse::yaml, print::yaml_to_string, &mut context);
+    register_parse_and_stringify!("TOML", parse::toml, print::toml_to_string, &mut context);
 
     let mut input = JsValue::from(JsString::from(options.input));
     if options.parse {
