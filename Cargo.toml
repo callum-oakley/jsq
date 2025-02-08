@@ -1,10 +1,10 @@
 [package]
-name = "jfn"
-version = "2.2.0"
+name = "jsq"
+version = "2.3.0"
 edition = "2021"
 description = "A tool for evaluating a JavaScript function and printing the result."
 license = "MIT"
-repository = "https://github.com/callum-oakley/jfn"
+repository = "https://github.com/callum-oakley/jsq"
 
 [dependencies]
 anyhow = "1.0.95"

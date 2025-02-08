@@ -1,13 +1,13 @@
-# jfn
+# jsq
 
-jfn is a tool for evaluating a JavaScript function and printing the result.
+jsq is a tool for evaluating a JavaScript function and printing the result.
 
 ## Help
 
 ```
 Evaluate a JavaScript function and print the result
 
-Usage: jfn [OPTIONS] [BODY]
+Usage: jsq [OPTIONS] [BODY]
 
 Arguments:
   [BODY]  The body of the JavaScript function to be evaluated [default: $]
@@ -32,7 +32,7 @@ the power of "Immortality":
 
 ```
 > curl https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json |
-    jfn -jJ '$.members.find(m => m.powers.includes("Immortality"))'
+    jsq -jJ '$.members.find(m => m.powers.includes("Immortality"))'
 {
   "name": "Eternal Flame",
   "age": 1000000,
@@ -66,13 +66,13 @@ Environment variables are available in `BODY` prefixed by `$`. e.g. `USER` is av
 
 JavaScript is a convenient language with which to process JSON (which stands for "JavaScript Object
 Notation" after all), but the boilerplate of reading from STDIN, parsing, and writing to STDOUT
-makes many could-be "one-liners" significantly more involved than they need to be. jfn provides a
+makes many could-be "one-liners" significantly more involved than they need to be. jsq provides a
 thin wrapper around Boa which handles this boilerplate and makes it more ergonomic to sprinkle a
 little JavaScript in to a shell script.
 
-jfn can be used for many of the same tasks as [jq][]. A given jq command is often a little shorter
-than the equivalent jfn command, but if (like the author) you find yourself often forgetting the
-syntax of jq, and you already know JavaScript, you might find jfn easier to use. To see how jfn
+jsq can be used for many of the same tasks as [jq][]. A given jq command is often a little shorter
+than the equivalent jsq command, but if (like the author) you find yourself often forgetting the
+syntax of jq, and you already know JavaScript, you might find jsq easier to use. To see how jsq
 compares to jq, check out the [translated jq tutorial][].
 
 ## Built-in functions
@@ -89,20 +89,20 @@ As well as the usual built-in functions provided by the engine, the following ar
 With [brew][]:
 
 ```
-brew install callum-oakley/tap/jfn
+brew install callum-oakley/tap/jsq
 ```
 
 With [cargo][]:
 
 ```
-cargo install jfn
+cargo install jsq
 ```
 
 Alternatively, there are binaries for Linux, MacOS, and Windows [attached to each release][].
 
 [a bunch of superheros]: https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json
 [Arrow Function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
-[attached to each release]: https://github.com/callum-oakley/jfn/releases
+[attached to each release]: https://github.com/callum-oakley/jsq/releases
 [Boa]: https://boajs.dev/
 [brew]: https://brew.sh/
 [cargo]: https://www.rust-lang.org/tools/install

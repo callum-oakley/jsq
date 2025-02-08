@@ -22,7 +22,7 @@ where
         .context("getting parent")?
         .parent()
         .context("getting parent")?
-        .join(format!("jfn{}", EXE_SUFFIX));
+        .join(format!("jsq{}", EXE_SUFFIX));
 
     let mut child = Command::new(bin)
         .args(args)
@@ -131,7 +131,7 @@ fn test() -> Result<()> {
 
     assert_eq!(
         run(&["-t", "$.package.name"], &cargo_toml, [])?,
-        ok("jfn\n")
+        ok("jsq\n")
     );
 
     assert_eq!(run(&["-tT"], &cargo_toml, [])?, ok(&cargo_toml));
