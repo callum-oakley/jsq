@@ -28,15 +28,15 @@ jobs:
       published: ${{ steps.vars.outputs.published }}
     steps:
       - uses: actions/checkout@v4
-      - run: brew install callum-oakley/tap/jfn
+      - run: brew install callum-oakley/tap/jsq
       - id: vars
         run: |
-          name="$(cat Cargo.toml | jfn -t '$.package.name')"
-          version="$(cat Cargo.toml | jfn -t '$.package.version')"
-          description="$(cat Cargo.toml | jfn -t '$.package.description')"
+          name="$(cat Cargo.toml | jsq -t '$.package.name')"
+          version="$(cat Cargo.toml | jsq -t '$.package.version')"
+          description="$(cat Cargo.toml | jsq -t '$.package.description')"
           published="$(
             curl -s "https://crates.io/api/v1/crates/${name}" |
-              version="${version}" jfn -j '$.versions?.map(a => a.num).includes($version)'
+              version="${version}" jsq -j '$.versions?.map(a => a.num).includes($version)'
           )"
           echo name="${name}" | tee -a "${GITHUB_OUTPUT}"
           echo version="${version}" | tee -a "${GITHUB_OUTPUT}"
