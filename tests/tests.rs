@@ -188,5 +188,10 @@ fn test() -> Result<()> {
         ok("jsq\n")
     );
 
+    assert_eq!(
+        run(&["-N", r#"{ print("foo"); print(42) }"#], "", [])?,
+        ok("foo\n42\n")
+    );
+
     Ok(())
 }

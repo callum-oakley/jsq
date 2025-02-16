@@ -35,16 +35,20 @@ struct Args {
     toml_in: bool,
 
     /// Print output as JSON.
-    #[arg(short('J'), long, conflicts_with_all(["yaml_out", "toml_out"]))]
+    #[arg(short('J'), long, conflicts_with_all(["yaml_out", "toml_out", "no_out"]))]
     json_out: bool,
 
     /// Print output as YAML.
-    #[arg(short('Y'), long, conflicts_with_all(["json_out", "toml_out"]))]
+    #[arg(short('Y'), long, conflicts_with_all(["json_out", "toml_out", "no_out"]))]
     yaml_out: bool,
 
     /// Print output as TOML.
-    #[arg(short('T'), long, conflicts_with_all(["json_out", "yaml_out"]))]
+    #[arg(short('T'), long, conflicts_with_all(["json_out", "yaml_out", "no_out"]))]
     toml_out: bool,
+
+    /// Don't print output.
+    #[arg(short('N'), long, conflicts_with_all(["json_out", "yaml_out", "toml_out"]))]
+    no_out: bool,
 
     /// The body of the JavaScript function to be evaluated.
     #[arg(default_value("$"))]
@@ -77,6 +81,10 @@ fn try_main() -> Result<()> {
         stringify: args.json_out || args.yaml_out || args.toml_out,
     })
     .map_err(|err| anyhow!("{err}"))?;
+
+    if args.no_out {
+        return Ok(());
+    }
 
     // undefined is a valid output of JSON.stringify
     if args.json_out && res != "undefined" {

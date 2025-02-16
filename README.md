@@ -19,6 +19,7 @@ Options:
   -J, --json-out  Print output as JSON
   -Y, --yaml-out  Print output as YAML
   -T, --toml-out  Print output as TOML
+  -N, --no-out    Don't print output
   -h, --help      Print help
   -V, --version   Print version
 
