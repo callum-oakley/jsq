@@ -51,10 +51,10 @@ struct Args {
     no_out: bool,
 
     /// The body of the JavaScript function to be evaluated.
-    #[arg(default_value("$"))]
+    #[arg(default_value("$"), conflicts_with("file"))]
     body: String,
 
-    /// Read the body of the function from FILE.
+    /// Read BODY from FILE.
     #[arg(short('f'), long, conflicts_with("body"))]
     file: Option<String>,
 }

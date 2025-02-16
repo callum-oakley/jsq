@@ -20,7 +20,7 @@ Options:
   -Y, --yaml-out     Print output as YAML
   -T, --toml-out     Print output as TOML
   -N, --no-out       Don't print output
-  -f, --file <FILE>  Read the body of the function from FILE
+  -f, --file <FILE>  Read BODY from FILE
   -h, --help         Print help
   -V, --version      Print version
 
