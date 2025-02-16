@@ -183,5 +183,10 @@ fn test() -> Result<()> {
         ok("version = \"1.0.135\"\nfeatures = [\"preserve_order\"]\n")
     );
 
+    assert_eq!(
+        run(&[r#"TOML.parse(read("Cargo.toml")).package.name"#], "", [])?,
+        ok("jsq\n")
+    );
+
     Ok(())
 }

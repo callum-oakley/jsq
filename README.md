@@ -79,10 +79,13 @@ compares to jq, check out the [translated jq tutorial][].
 
 As well as the usual built-in functions provided by the engine, the following are available:
 
-- `YAML.parse` – like `JSON.parse` but for YAML
-- `YAML.stringify` – like `JSON.stringify` but for YAML
-- `TOML.parse` – like `JSON.parse` but for TOML
-- `TOML.stringify` – like `JSON.stringify` but for TOML
+- `read(path)` – read the file at `path` to a string
+- `write(path, value)` – write `value` as the entire contents of the file at `path`
+- `print(value)` – print `value` to STDOUT
+- `YAML.parse(value)` – like `JSON.parse` but for YAML
+- `YAML.stringify(value)` – like `JSON.stringify` but for YAML
+- `TOML.parse(value)` – like `JSON.parse` but for TOML
+- `TOML.stringify(value)` – like `JSON.stringify` but for TOML
 
 ## Install
 
