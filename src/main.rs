@@ -53,6 +53,10 @@ struct Args {
     /// The body of the JavaScript function to be evaluated.
     #[arg(default_value("$"))]
     body: String,
+
+    /// Read the body of the function from FILE.
+    #[arg(short('f'), long, conflicts_with("body"))]
+    file: Option<String>,
 }
 
 fn try_main() -> Result<()> {
@@ -73,10 +77,16 @@ fn try_main() -> Result<()> {
         input = parse::toml(&input)?;
     }
 
+    let body = if let Some(f) = args.file {
+        std::fs::read_to_string(f)?
+    } else {
+        args.body
+    };
+
     let res = boa::eval(Options {
         input: &input,
         env: std::env::vars(),
-        body: &args.body,
+        body: &body,
         parse: args.json_in || args.yaml_in || args.toml_in,
         stringify: args.json_out || args.yaml_out || args.toml_out,
     })

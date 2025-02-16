@@ -193,5 +193,10 @@ fn test() -> Result<()> {
         ok("foo\n42\n")
     );
 
+    assert_eq!(
+        run(&["-Nf", "tests/test.js"], "", [])?,
+        ok("0\n1\n2\n3\n4\n")
+    );
+
     Ok(())
 }

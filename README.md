@@ -13,15 +13,16 @@ Arguments:
   [BODY]  The body of the JavaScript function to be evaluated [default: $]
 
 Options:
-  -j, --json-in   Parse input as JSON
-  -y, --yaml-in   Parse input as YAML
-  -t, --toml-in   Parse input as TOML
-  -J, --json-out  Print output as JSON
-  -Y, --yaml-out  Print output as YAML
-  -T, --toml-out  Print output as TOML
-  -N, --no-out    Don't print output
-  -h, --help      Print help
-  -V, --version   Print version
+  -j, --json-in      Parse input as JSON
+  -y, --yaml-in      Parse input as YAML
+  -t, --toml-in      Parse input as TOML
+  -J, --json-out     Print output as JSON
+  -Y, --yaml-out     Print output as YAML
+  -T, --toml-out     Print output as TOML
+  -N, --no-out       Don't print output
+  -f, --file <FILE>  Read the body of the function from FILE
+  -h, --help         Print help
+  -V, --version      Print version
 
 Input is avaialable in BODY as $. Environment variables are available in BODY prefixed by $.
 ```
