@@ -12,7 +12,7 @@ use crate::{parse, print};
 pub struct Options<'a, I> {
     pub input: &'a str,
     pub env: I,
-    pub body: &'a str,
+    pub script: &'a str,
     pub parse: bool,
     pub stringify: bool,
 }
@@ -176,7 +176,7 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
     }
 
     let mut res = context
-        .eval(Source::from_bytes(&format!("(() => {})()", options.body)))
+        .eval(Source::from_bytes(options.script))
         .to_anyhow(&mut context)?;
 
     if options.stringify {

@@ -10,14 +10,14 @@ use anyhow::{anyhow, Context, Result};
 use boa::Options;
 use clap::Parser;
 
-/// Evaluate a JavaScript function and print the result.
+/// Evaluate some JavaScript and print the result.
 #[derive(Parser)]
 #[command(
     version,
     arg_required_else_help(true),
     after_help([
-        "Input is avaialable in BODY as $.",
-        "Environment variables are available in BODY prefixed by $.",
+        "Input is avaialable in SCRIPT as $.",
+        "Environment variables are available in SCRIPT prefixed by $.",
     ].join(" "))
 )]
 #[expect(clippy::struct_excessive_bools)]
@@ -34,28 +34,28 @@ struct Args {
     #[arg(short('t'), long, conflicts_with_all(["json_in", "yaml_in"]))]
     toml_in: bool,
 
-    /// Print output as JSON.
+    /// Print result as JSON.
     #[arg(short('J'), long, conflicts_with_all(["yaml_out", "toml_out", "no_out"]))]
     json_out: bool,
 
-    /// Print output as YAML.
+    /// Print result as YAML.
     #[arg(short('Y'), long, conflicts_with_all(["json_out", "toml_out", "no_out"]))]
     yaml_out: bool,
 
-    /// Print output as TOML.
+    /// Print result as TOML.
     #[arg(short('T'), long, conflicts_with_all(["json_out", "yaml_out", "no_out"]))]
     toml_out: bool,
 
-    /// Don't print output.
+    /// Don't print result.
     #[arg(short('N'), long, conflicts_with_all(["json_out", "yaml_out", "toml_out"]))]
     no_out: bool,
 
-    /// The body of the JavaScript function to be evaluated.
+    /// The JavaScript to be evaluated.
     #[arg(default_value("$"), conflicts_with("file"))]
-    body: String,
+    script: String,
 
-    /// Read BODY from FILE.
-    #[arg(short('f'), long, conflicts_with("body"))]
+    /// Read SCRIPT from FILE.
+    #[arg(short('f'), long, conflicts_with("script"))]
     file: Option<String>,
 }
 
@@ -77,16 +77,16 @@ fn try_main() -> Result<()> {
         input = parse::toml(&input)?;
     }
 
-    let body = if let Some(f) = args.file {
+    let script = if let Some(f) = args.file {
         std::fs::read_to_string(f)?
     } else {
-        args.body
+        args.script
     };
 
     let res = boa::eval(Options {
         input: &input,
         env: std::env::vars(),
-        body: &body,
+        script: &script,
         parse: args.json_in || args.yaml_in || args.toml_in,
         stringify: args.json_out || args.yaml_out || args.toml_out,
     })

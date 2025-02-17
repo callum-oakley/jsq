@@ -77,11 +77,11 @@ fn test() -> Result<()> {
 
     assert!(run(&[], "", [])?
         .stderr
-        .starts_with("Evaluate a JavaScript function and print the result"));
+        .starts_with("Evaluate some JavaScript and print the result"));
 
     assert_eq!(run(&["2 + 3"], "", [])?, ok("5\n"));
 
-    assert_eq!(run(&["{ const x = 5; return x * x }"], "", [])?, ok("25\n"));
+    assert_eq!(run(&["const x = 5; x * x"], "", [])?, ok("25\n"));
 
     assert_eq!(run(&["-jJ", "$.foo"], r#"{ "foo": 42 }"#, [])?, ok("42\n"));
 
@@ -113,8 +113,8 @@ fn test() -> Result<()> {
     );
 
     assert_eq!(
-        run(&["const x = 5; return x * x"], "", [])?,
-        err("error: SyntaxError: unexpected token 'const', primary expression at line 1, col 8\n")
+        run(&["return 42"], "", [])?,
+        err("error: SyntaxError: unexpected token 'return', statement at line 1, col 1\n")
     );
 
     assert_eq!(
@@ -189,13 +189,13 @@ fn test() -> Result<()> {
     );
 
     assert_eq!(
-        run(&["-N", r#"{ print("foo"); print(42) }"#], "", [])?,
+        run(&["-N", r#"print("foo"); print(42)"#], "", [])?,
         ok("foo\n42\n")
     );
 
     assert_eq!(
-        run(&["-Nf", "tests/test.js"], "", [])?,
-        ok("0\n1\n2\n3\n4\n")
+        run(&["-f", "tests/test.js"], "", [])?,
+        ok("0\n1\n2\n3\n4\n42\n")
     );
 
     Ok(())

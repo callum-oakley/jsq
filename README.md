@@ -1,30 +1,30 @@
 # jsq
 
-jsq is a tool for evaluating a JavaScript function and printing the result.
+jsq is a tool for evaluating some JavaScript and printing the result.
 
 ## Help
 
 ```
-Evaluate a JavaScript function and print the result
+Evaluate some JavaScript and print the result
 
-Usage: jsq [OPTIONS] [BODY]
+Usage: jsq [OPTIONS] [SCRIPT]
 
 Arguments:
-  [BODY]  The body of the JavaScript function to be evaluated [default: $]
+  [SCRIPT]  The JavaScript to be evaluated [default: $]
 
 Options:
   -j, --json-in      Parse input as JSON
   -y, --yaml-in      Parse input as YAML
   -t, --toml-in      Parse input as TOML
-  -J, --json-out     Print output as JSON
-  -Y, --yaml-out     Print output as YAML
-  -T, --toml-out     Print output as TOML
-  -N, --no-out       Don't print output
-  -f, --file <FILE>  Read BODY from FILE
+  -J, --json-out     Print result as JSON
+  -Y, --yaml-out     Print result as YAML
+  -T, --toml-out     Print result as TOML
+  -N, --no-out       Don't print result
+  -f, --file <FILE>  Read SCRIPT from FILE
   -h, --help         Print help
   -V, --version      Print version
 
-Input is avaialable in BODY as $. Environment variables are available in BODY prefixed by $.
+Input is avaialable in SCRIPT as $. Environment variables are available in SCRIPT prefixed by $.
 ```
 
 ## Example
@@ -51,9 +51,7 @@ the power of "Immortality":
 
 ## Semantics
 
-The provided `BODY` is evaluated by [Boa][] as part of the expression `(() => BODY)()`. In
-particular, this means that `BODY` must have the syntax of an [Arrow Function][] body: it can either
-be a single expression, or multiple statements enclosed in braces with an explicit `return`.
+The provided `SCRIPT` is evaluated by [Boa][]. The result is the script's [completion value][].
 
 `$` contains the result of reading STDIN as text, or of parsing it as JSON if the `-j` flag is set,
 YAML if the `-y` flag is set, or TOML if the `-t` flag is set. If STDIN [is a terminal][] then `$`
@@ -62,7 +60,8 @@ is the empty string.
 The result is printed to STDOUT after being [cast to a string][], or serialized as JSON if the `-J`
 flag is set, YAML if the `-Y` flag is set, or TOML if the `-T` flag is set.
 
-Environment variables are available in `BODY` prefixed by `$`. e.g. `USER` is available as `$USER`.
+Environment variables are available in `SCRIPT` prefixed by `$`. e.g. `USER` is available as
+`$USER`.
 
 ## Why?
 
@@ -106,12 +105,12 @@ cargo install jsq
 Alternatively, there are binaries for Linux, MacOS, and Windows [attached to each release][].
 
 [a bunch of superheros]: https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json
-[Arrow Function]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions
 [attached to each release]: https://github.com/callum-oakley/jsq/releases
 [Boa]: https://boajs.dev/
 [brew]: https://brew.sh/
 [cargo]: https://www.rust-lang.org/tools/install
 [cast to a string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/toString
+[completion value]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval
 [is a terminal]: https://doc.rust-lang.org/beta/std/io/trait.IsTerminal.html#tymethod.is_terminal
 [jq]: https://jqlang.github.io/jq/
 [translated jq tutorial]: /tutorial.md

@@ -14,8 +14,8 @@ curl 'https://api.github.com/repos/callum-oakley/jsq/commits?per_page=5'
 
 GitHub returns nicely formatted JSON. For servers that don't, it can be helpful to pipe the response
 through jsq to pretty-print it. The `-j` flag parses the input as JSON before passing it to the
-function, and the `-J` flag prints the output as JSON. The default function body is the identity:
-`$`.
+script, and the `-J` flag prints the result as JSON. The default script is `$` which returns the
+input unchanged.
 
 ```
 curl 'https://api.github.com/repos/callum-oakley/jsq/commits?per_page=5' | jsq -jJ
@@ -34,12 +34,12 @@ There's a lot of info we don't care about there, so we'll restrict it down to th
 fields.
 
 ```
-jsq -jJ '{ const a = $[0]; return { message: a.commit.message, name: a.commit.committer.name } }'
+jsq -jJ 'const a = $[0]; ({ message: a.commit.message, name: a.commit.committer.name })'
 ```
 
 We assign `$[0]` to a variable and then use that variable to construct a new object with only the
-fields we care about. Note that we're using two statements here, so just like in a JavaScript arrow
-function, we need to wrap the body in braces and use an explicit `return` statement.
+fields we care about. (Note that we have to wrap the object literal in parentheses, so as not to
+have it be confused with a block statement.)
 
 Now let's get the rest of the commits by applying the same transformation to every commit with
 `map`.
