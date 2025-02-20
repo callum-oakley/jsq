@@ -1,7 +1,7 @@
 [package]
 name = "jsq"
 version = "3.0.0"
-edition = "2021"
+edition = "2024"
 description = "A tool for evaluating a JavaScript function and printing the result."
 license = "MIT"
 repository = "https://github.com/callum-oakley/jsq"
