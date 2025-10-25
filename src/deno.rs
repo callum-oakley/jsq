@@ -2,7 +2,7 @@ use std::fmt::Write as _;
 use std::io::Write as _;
 use std::process::{Command, Output, Stdio};
 
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, anyhow, bail, ensure};
 use oxc::allocator::{Allocator, TakeIn};
 use oxc::ast::ast::{Program, Statement};
 use oxc::ast::{AstBuilder, ast::Expression};
@@ -90,7 +90,14 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
             Print::Object => Stdio::piped(),
             _ => Stdio::inherit(),
         })
-        .spawn()?;
+        .spawn()
+        .map_err(|err| {
+            if err.kind() == std::io::ErrorKind::NotFound {
+                anyhow!("command not found: deno")
+            } else {
+                err.into()
+            }
+        })?;
 
     // Write code to child's STDIN from another thread to avoid potential deadlock. From
     // https://doc.rust-lang.org/std/process/struct.Stdio.html#method.piped:
