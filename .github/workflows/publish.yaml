@@ -17,6 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: denoland/setup-deno@v2
       - run: cargo test
   info:
     needs: cargo-test
@@ -93,7 +94,8 @@ jobs:
             -f 'event_type=publish' \
             -f 'client_payload[name]=${{ needs.info.outputs.name }}' \
             -f 'client_payload[version]=${{ needs.info.outputs.version }}' \
-            -f 'client_payload[description]=${{ needs.info.outputs.description }}'
+            -f 'client_payload[description]=${{ needs.info.outputs.description }}' \
+            -f 'client_payload[depends_on]=deno'
   cargo-publish:
     needs: info
     if: ${{ needs.info.outputs.published != 'true' }}

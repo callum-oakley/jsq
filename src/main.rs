@@ -1,14 +1,14 @@
 #![warn(clippy::pedantic)]
 
-mod boa;
+mod deno;
 mod parse;
 mod print;
 
 use std::io::{IsTerminal, Read};
 
-use anyhow::{anyhow, Context, Result};
-use boa::Options;
+use anyhow::{Context, Result, anyhow};
 use clap::Parser;
+use deno::{Options, Print};
 
 /// Evaluate some JavaScript and print the result.
 #[derive(Parser)]
@@ -83,12 +83,20 @@ fn try_main() -> Result<()> {
         args.script
     };
 
-    let res = boa::eval(Options {
+    let res = deno::eval(Options {
         input: &input,
         env: std::env::vars(),
         script: &script,
         parse: args.json_in || args.yaml_in || args.toml_in,
-        stringify: args.json_out || args.yaml_out || args.toml_out,
+        print: if args.no_out {
+            None
+        } else {
+            Some(if args.json_out || args.yaml_out || args.toml_out {
+                Print::Object
+            } else {
+                Print::String
+            })
+        },
     })
     .map_err(|err| anyhow!("{err}"))?;
 
@@ -96,17 +104,29 @@ fn try_main() -> Result<()> {
         return Ok(());
     }
 
+    if !res.status.success() {
+        // Deno will have printed the error already so exit silently.
+        std::process::exit(res.status.code().unwrap_or(1));
+    }
+
+    let mut output = String::from_utf8(res.stdout)?;
+
+    // `console.log` introduces a newline which we'd rather not have.
+    if output.ends_with('\n') {
+        output.pop();
+    }
+
     // undefined is a valid output of JSON.stringify
-    if args.json_out && res != "undefined" {
-        print::json(&mut print::stdout(), &res).context("printing JSON")?;
-    } else if args.yaml_out && res != "undefined" {
-        print::yaml(&mut print::stdout(), &res).context("printing YAML")?;
-    } else if args.toml_out && res != "undefined" {
-        print::toml(&mut print::stdout(), &res).context("printing TOML")?;
-    } else if res.ends_with('\n') {
-        print!("{res}");
+    if args.json_out && output != "undefined" {
+        print::json(&mut print::stdout(), &output).context("printing JSON")?;
+    } else if args.yaml_out && output != "undefined" {
+        print::yaml(&mut print::stdout(), &output).context("printing YAML")?;
+    } else if args.toml_out && output != "undefined" {
+        print::toml(&mut print::stdout(), &output).context("printing TOML")?;
+    } else if output.ends_with('\n') {
+        print!("{output}");
     } else {
-        println!("{res}");
+        println!("{output}");
     }
 
     Ok(())

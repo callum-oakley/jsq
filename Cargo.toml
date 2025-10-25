@@ -1,25 +1,28 @@
 [package]
 name = "jsq"
-version = "3.0.0"
+version = "4.0.0"
 edition = "2024"
 description = "A tool for evaluating a JavaScript function and printing the result."
 license = "MIT"
 repository = "https://github.com/callum-oakley/jsq"
 
 [dependencies]
-anyhow = "1.0.95"
-boa_engine = "0.20.0"
+anyhow = "1.0.100"
 serde_yaml = "0.9.34"
 termcolor = "1.4.1"
 
 [dependencies.clap]
-version = "4.5.23"
+version = "4.5.50"
 features = ["derive"]
 
+[dependencies.oxc]
+version = "0.95.0"
+features = ["ast_visit", "codegen"]
+
 [dependencies.serde_json]
-version = "1.0.135"
+version = "1.0.145"
 features = ["preserve_order"]
 
 [dependencies.toml]
-version = "0.8.19"
+version = "0.9.8"
 features = ["preserve_order"]

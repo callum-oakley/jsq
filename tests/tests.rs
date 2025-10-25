@@ -4,7 +4,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use anyhow::{ensure, Context, Result};
+use anyhow::{Context, Result, ensure};
 
 #[derive(PartialEq, Debug)]
 struct Output {
@@ -54,20 +54,43 @@ fn convert(flags: &str, stdin: &str) -> Result<String> {
     Ok(res.stdout)
 }
 
-fn ok(stdout: &str) -> Output {
-    Output {
-        status_code: 0,
-        stdout: String::from(stdout),
-        stderr: String::new(),
-    }
+macro_rules! assert_ok {
+    ($actual:expr, $expected:expr $(,)?) => {{
+        let actual = $actual;
+        assert_eq!(
+            actual.status_code, 0,
+            "status_code: {}\nstdout: {}\nstderr: {}",
+            actual.status_code, actual.stdout, actual.stderr,
+        );
+        assert_eq!(
+            actual.stdout, $expected,
+            "status_code: {}\nstdout: {}\nstderr: {}",
+            actual.status_code, actual.stdout, actual.stderr,
+        );
+    }};
 }
 
-fn err(stderr: &str) -> Output {
-    Output {
-        status_code: 1,
-        stdout: String::new(),
-        stderr: String::from(stderr),
-    }
+macro_rules! assert_err {
+    ($actual:expr, $expected:expr $(,)?) => {{
+        let actual = $actual;
+        assert_eq!(
+            actual.status_code, 1,
+            "status_code: {}\nstdout: {}\nstderr: {}",
+            actual.status_code, actual.stdout, actual.stderr,
+        );
+        assert_eq!(
+            actual.stdout, "",
+            "status_code: {}\nstdout: {}\nstderr: {}",
+            actual.status_code, actual.stdout, actual.stderr,
+        );
+        assert!(
+            actual.stderr.contains($expected),
+            "status_code: {}\nstdout: {}\nstderr: {}",
+            actual.status_code,
+            actual.stdout,
+            actual.stderr,
+        );
+    }};
 }
 
 #[test]
@@ -75,73 +98,69 @@ fn test() -> Result<()> {
     let cargo_toml = include_str!("../Cargo.toml").replace("\r\n", "\n");
     let publish_yaml = include_str!("../.github/workflows/publish.yaml").replace("\r\n", "\n");
 
-    assert!(run(&[], "", [])?
-        .stderr
-        .starts_with("Evaluate some JavaScript and print the result"));
+    assert!(
+        run(&[], "", [])?
+            .stderr
+            .starts_with("Evaluate some JavaScript and print the result")
+    );
 
-    assert_eq!(run(&["2 + 3"], "", [])?, ok("5\n"));
+    assert_ok!(run(&["2 + 3"], "", [])?, "5\n");
 
-    assert_eq!(run(&["const x = 5; x * x"], "", [])?, ok("25\n"));
+    assert_ok!(run(&["const x = 5; x * x"], "", [])?, "25\n");
 
-    assert_eq!(run(&["-jJ", "$.foo"], r#"{ "foo": 42 }"#, [])?, ok("42\n"));
+    assert_ok!(run(&["-jJ", "$.foo"], r#"{ "foo": 42 }"#, [])?, "42\n");
 
-    assert_eq!(
+    assert_ok!(
         run(&["-jJ", "$.foo"], r#"{ "foo": "bar" }"#, [])?,
-        ok("\"bar\"\n")
+        "\"bar\"\n"
     );
 
-    assert_eq!(
+    assert_ok!(
         run(&["-jJ", "$.foo"], r#"{ "foo": { "bar": [0, 1, 2] } }"#, [])?,
-        ok("{\n  \"bar\": [\n    0,\n    1,\n    2\n  ]\n}\n")
+        "{\n  \"bar\": [\n    0,\n    1,\n    2\n  ]\n}\n"
     );
 
-    assert_eq!(
+    assert_ok!(
         run(&["-J", "({ a: {}, b: [] })"], "", [])?,
-        ok("{\n  \"a\": {},\n  \"b\": []\n}\n")
+        "{\n  \"a\": {},\n  \"b\": []\n}\n"
     );
 
-    assert_eq!(run(&["$foo"], "", [("foo", "42")])?, ok("42\n"));
+    assert_ok!(run(&["$foo"], "", [("foo", "42")])?, "42\n");
 
-    assert_eq!(
+    assert_ok!(
         run(&[r"$.match(/foo:(\w*)/)[1]"], "foo:bar baz:42", [])?,
-        ok("bar\n")
+        "bar\n"
     );
 
-    assert_eq!(
-        run(&["foo"], "", [])?,
-        err("error: ReferenceError: foo is not defined\n")
-    );
+    assert_err!(run(&["foo"], "", [])?, "ReferenceError: foo is not defined");
 
-    assert_eq!(
+    assert_err!(
         run(&["return 42"], "", [])?,
-        err("error: SyntaxError: unexpected token 'return', statement at line 1, col 1\n")
+        "A 'return' statement can only be used within a function body",
     );
 
-    assert_eq!(
+    assert_err!(
         run(&["-j"], "foo", [])?,
-        err("error: parsing JSON: expected ident at line 1 column 2\n")
+        "parsing JSON: expected ident at line 1 column 2",
     );
 
-    assert_eq!(
+    assert_ok!(
         run(&["-y", "$.jobs.info['runs-on']"], &publish_yaml, [])?,
-        ok("macos-latest\n")
+        "macos-latest\n",
     );
 
-    assert_eq!(run(&["-yY"], &publish_yaml, [])?, ok(&publish_yaml));
+    assert_ok!(run(&["-yY"], &publish_yaml, [])?, publish_yaml);
 
-    assert_eq!(
-        run(&["-t", "$.package.name"], &cargo_toml, [])?,
-        ok("jsq\n")
-    );
+    assert_ok!(run(&["-t", "$.package.name"], &cargo_toml, [])?, "jsq\n");
 
-    assert_eq!(run(&["-tT"], &cargo_toml, [])?, ok(&cargo_toml));
+    assert_ok!(run(&["-tT"], &cargo_toml, [])?, cargo_toml);
 
-    assert_eq!(run(&["-J", "undefined"], "", [])?, ok("undefined\n"));
-    assert_eq!(run(&["-Y", "undefined"], "", [])?, ok("undefined\n"));
-    assert_eq!(run(&["-T", "undefined"], "", [])?, ok("undefined\n"));
-    assert_eq!(run(&["-J", "() => {}"], "", [])?, ok("undefined\n"));
-    assert_eq!(run(&["-Y", "() => {}"], "", [])?, ok("undefined\n"));
-    assert_eq!(run(&["-T", "() => {}"], "", [])?, ok("undefined\n"));
+    assert_ok!(run(&["-J", "undefined"], "", [])?, "undefined\n");
+    assert_ok!(run(&["-Y", "undefined"], "", [])?, "undefined\n");
+    assert_ok!(run(&["-T", "undefined"], "", [])?, "undefined\n");
+    assert_ok!(run(&["-J", "() => {}"], "", [])?, "undefined\n");
+    assert_ok!(run(&["-Y", "() => {}"], "", [])?, "undefined\n");
+    assert_ok!(run(&["-T", "() => {}"], "", [])?, "undefined\n");
 
     assert_eq!(
         convert("-tY", &convert("-jT", &convert("-yJ", &publish_yaml)?)?)?,
@@ -165,38 +184,53 @@ fn test() -> Result<()> {
 
     assert_eq!(convert("-jY", "{ \"foo\": \"true\" }")?, "foo: \"true\"\n");
 
-    assert_eq!(
+    assert_ok!(
         run(
-            &["YAML.stringify(YAML.parse($).defaults)"],
+            &[r#"
+            import * as yaml from "jsr:@std/yaml";
+            yaml.stringify(yaml.parse($).defaults)
+            "#],
             &publish_yaml,
             []
         )?,
-        ok("run:\n  shell: bash\n")
+        "run:\n  shell: bash\n",
     );
 
-    assert_eq!(
+    assert_ok!(
         run(
-            &["TOML.stringify(TOML.parse($).dependencies.serde_json)"],
+            &[r#"
+            import * as toml from "jsr:@std/toml";
+            toml.stringify(toml.parse($).dependencies.serde_json)
+            "#],
             &cargo_toml,
             []
         )?,
-        ok("version = \"1.0.135\"\nfeatures = [\"preserve_order\"]\n")
+        "version = \"1.0.145\"\nfeatures = [\"preserve_order\"]\n",
     );
 
-    assert_eq!(
-        run(&[r#"TOML.parse(read("Cargo.toml")).package.name"#], "", [])?,
-        ok("jsq\n")
+    assert_ok!(
+        run(
+            &[r#"
+            import * as toml from "jsr:@std/toml";
+            toml.parse(Deno.readTextFileSync("Cargo.toml")).package.name
+            "#],
+            "",
+            []
+        )?,
+        "jsq\n",
     );
 
-    assert_eq!(
-        run(&["-N", r#"print("foo"); print(42)"#], "", [])?,
-        ok("foo\n42\n")
+    assert_ok!(
+        run(&["-N", r#"console.log("foo"); console.log(42)"#], "", [])?,
+        "foo\n42\n",
     );
 
-    assert_eq!(
+    assert_ok!(
         run(&["-f", "tests/test.js"], "", [])?,
-        ok("0\n1\n2\n3\n4\n42\n")
+        "0\n1\n2\n3\n4\n42\n",
     );
+
+    assert_ok!(run(&["let x"], "", [])?, "undefined\n");
 
     Ok(())
 }

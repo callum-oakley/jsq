@@ -1,8 +1,8 @@
 use std::{io::IsTerminal, sync::LazyLock};
 
-use anyhow::{bail, Error, Result};
+use anyhow::{Error, Result, bail};
 use serde_json::Value;
-use termcolor::{Color, ColorChoice, ColorSpec, NoColor, StandardStream, WriteColor};
+use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 const TAB_WIDTH: usize = 2;
 
@@ -339,16 +339,4 @@ pub fn stdout() -> StandardStream {
 
 pub fn stderr() -> StandardStream {
     StandardStream::stderr(color_choice(&std::io::stderr()))
-}
-
-pub fn yaml_to_string(s: &str) -> Result<String> {
-    let mut buf = Vec::new();
-    yaml(&mut NoColor::new(&mut buf), s)?;
-    Ok(String::from_utf8(buf)?)
-}
-
-pub fn toml_to_string(s: &str) -> Result<String> {
-    let mut buf = Vec::new();
-    toml(&mut NoColor::new(&mut buf), s)?;
-    Ok(String::from_utf8(buf)?)
 }

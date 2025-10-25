@@ -51,14 +51,16 @@ the power of "Immortality":
 
 ## Semantics
 
-The provided `SCRIPT` is evaluated by [Boa][]. The result is the script's [completion value][].
+The provided `SCRIPT` is evaluated by [Deno][] so the Deno runtime and standard library are
+available, as are [third party imports][].
 
 `$` contains the result of reading STDIN as text, or of parsing it as JSON if the `-j` flag is set,
 YAML if the `-y` flag is set, or TOML if the `-t` flag is set. If STDIN [is a terminal][] then `$`
 is the empty string.
 
-The result is printed to STDOUT after being [cast to a string][], or serialized as JSON if the `-J`
-flag is set, YAML if the `-Y` flag is set, or TOML if the `-T` flag is set.
+The value of the final statement in `SCRIPT` (or `undefined` if the final statment is not an
+expression statment) is printed to STDOUT – after being serialized as JSON if the `-J` flag is set,
+YAML if the `-Y` flag is set, or TOML if the `-T` flag is set – unless the `-N` flag is set.
 
 Environment variables are available in `SCRIPT` prefixed by `$`. e.g. `USER` is available as
 `$USER`.
@@ -68,25 +70,13 @@ Environment variables are available in `SCRIPT` prefixed by `$`. e.g. `USER` is 
 JavaScript is a convenient language with which to process JSON (which stands for "JavaScript Object
 Notation" after all), but the boilerplate of reading from STDIN, parsing, and writing to STDOUT
 makes many could-be "one-liners" significantly more involved than they need to be. jsq provides a
-thin wrapper around Boa which handles this boilerplate and makes it more ergonomic to sprinkle a
+thin wrapper around Deno which handles this boilerplate and makes it more ergonomic to sprinkle a
 little JavaScript in to a shell script.
 
 jsq can be used for many of the same tasks as [jq][]. A given jq command is often a little shorter
 than the equivalent jsq command, but if (like the author) you find yourself often forgetting the
 syntax of jq, and you already know JavaScript, you might find jsq easier to use. To see how jsq
 compares to jq, check out the [translated jq tutorial][].
-
-## Built-in functions
-
-As well as the usual built-in functions provided by the engine, the following are available:
-
-- `read(path)` – read the file at `path` to a string
-- `write(path, value)` – write `value` as the entire contents of the file at `path`
-- `print(value)` – print `value` to STDOUT
-- `YAML.parse(value)` – like `JSON.parse` but for YAML
-- `YAML.stringify(value)` – like `JSON.stringify` but for YAML
-- `TOML.parse(value)` – like `JSON.parse` but for TOML
-- `TOML.stringify(value)` – like `JSON.stringify` but for TOML
 
 ## Install
 
@@ -106,11 +96,10 @@ Alternatively, there are binaries for Linux, MacOS, and Windows [attached to eac
 
 [a bunch of superheros]: https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json
 [attached to each release]: https://github.com/callum-oakley/jsq/releases
-[Boa]: https://boajs.dev/
 [brew]: https://brew.sh/
 [cargo]: https://www.rust-lang.org/tools/install
-[cast to a string]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/toString
-[completion value]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/eval
+[Deno]: https://deno.com/
 [is a terminal]: https://doc.rust-lang.org/beta/std/io/trait.IsTerminal.html#tymethod.is_terminal
 [jq]: https://jqlang.github.io/jq/
+[third party imports]: https://docs.deno.com/runtime/fundamentals/modules/#importing-third-party-modules-and-libraries
 [translated jq tutorial]: /tutorial.md
