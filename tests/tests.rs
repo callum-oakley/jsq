@@ -193,7 +193,7 @@ fn test() -> Result<()> {
             &publish_yaml,
             []
         )?,
-        "run:\n  shell: bash\n",
+        "run:\n  shell: bash\n\n",
     );
 
     assert_ok!(
@@ -205,7 +205,7 @@ fn test() -> Result<()> {
             &cargo_toml,
             []
         )?,
-        "version = \"1.0.145\"\nfeatures = [\"preserve_order\"]\n",
+        "version = \"1.0.145\"\nfeatures = [\"preserve_order\"]\n\n",
     );
 
     assert_ok!(

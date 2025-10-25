@@ -13,6 +13,7 @@ use oxc::span::{SourceType, Span};
 
 #[derive(Copy, Clone)]
 pub enum Print {
+    None,
     String,
     Object,
 }
@@ -22,7 +23,7 @@ pub struct Options<'a, I> {
     pub env: I,
     pub script: &'a str,
     pub parse: bool,
-    pub print: Option<Print>,
+    pub print: Print,
 }
 
 pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Result<Output> {
@@ -57,14 +58,15 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
         }
     }
 
-    if let Some(output) = options.print {
+    if !matches!(options.print, Print::None) {
         let statement = program.body.pop().expect("program is not empty");
         if let Statement::ExpressionStatement(mut expression_statement) = statement {
             program.body.push(sub_undefined(
                 &allocator,
-                match output {
+                match options.print {
                     Print::String => "console.log(undefined);",
                     Print::Object => "console.log(JSON.stringify(undefined));",
+                    _ => unreachable!(),
                 },
                 expression_statement.expression.take_in(&allocator),
             )?);
@@ -85,8 +87,8 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
         .arg("-")
         .stdin(Stdio::piped())
         .stdout(match options.print {
-            Some(_) => Stdio::piped(),
-            None => Stdio::inherit(),
+            Print::Object => Stdio::piped(),
+            _ => Stdio::inherit(),
         })
         .spawn()?;
 
