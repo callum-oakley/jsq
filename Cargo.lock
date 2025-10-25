@@ -253,7 +253,7 @@ checksum = "a3c2a6c0b4b5637c41719973ef40c6a1cf564f9db6958350de6193fbee9c23f5"
 
 [[package]]
 name = "jsq"
-version = "4.1.1"
+version = "4.1.2"
 dependencies = [
  "anyhow",
  "clap",

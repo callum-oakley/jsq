@@ -66,7 +66,7 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
                 match options.print {
                     Print::String => "console.log(undefined);",
                     Print::Object => "console.log(JSON.stringify(undefined));",
-                    _ => unreachable!(),
+                    Print::None => unreachable!(),
                 },
                 expression_statement.expression.take_in(&allocator),
             )?);

@@ -1,3 +1,4 @@
+use std::fmt::Write;
 use std::{io::IsTerminal, sync::LazyLock};
 
 use anyhow::{Error, Result, bail};
@@ -98,22 +99,22 @@ fn yaml_flow_string(s: &str) -> String {
     }
 }
 
-fn yaml_block_string(depth: usize, s: &str) -> String {
+fn yaml_block_string(depth: usize, s: &str) -> Result<String> {
     let mut res = String::from("|");
     if s.starts_with(char::is_whitespace) {
-        res.push_str(&format!("{TAB_WIDTH}"));
+        write!(&mut res, "{TAB_WIDTH}")?;
     }
     for line in s.lines() {
-        res.push_str(&format!("\n{}{}", " ".repeat(depth * TAB_WIDTH), line));
+        write!(&mut res, "\n{}{}", " ".repeat(depth * TAB_WIDTH), line)?;
     }
-    res
+    Ok(res)
 }
 
-fn yaml_string(depth: usize, s: &str) -> String {
+fn yaml_string(depth: usize, s: &str) -> Result<String> {
     if s.contains('\n') && !s.contains(|c: char| c.is_control() && c != '\n') {
         yaml_block_string(depth, s)
     } else {
-        yaml_flow_string(s)
+        Ok(yaml_flow_string(s))
     }
 }
 
@@ -156,7 +157,8 @@ fn write_yaml(w: &mut impl WriteColor, depth: usize, obj_value: bool, value: &Va
             if obj_value {
                 write!(w, " ")?;
             }
-            write_with_color!(w, STR, "{}", yaml_string(depth, s))?;
+            let ys = yaml_string(depth, s)?;
+            write_with_color!(w, STR, "{ys}")?;
         }
         _ => {
             if obj_value {
