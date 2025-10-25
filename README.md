@@ -80,25 +80,31 @@ compares to jq, check out the [translated jq tutorial][].
 
 ## Install
 
-With [brew][]:
+### With [brew][]
 
 ```
 brew install callum-oakley/tap/jsq
 ```
 
-With [cargo][]:
+### With [cargo][]
+
+[Install Deno][] and then:
 
 ```
 cargo install jsq
 ```
 
-Alternatively, there are binaries for Linux, MacOS, and Windows [attached to each release][].
+### Binaries
+
+Alternatively, there are binaries for Linux, MacOS, and Windows [attached to each release][] (you'll
+also need to [install Deno][]).
 
 [a bunch of superheros]: https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json
 [attached to each release]: https://github.com/callum-oakley/jsq/releases
 [brew]: https://brew.sh/
 [cargo]: https://www.rust-lang.org/tools/install
 [Deno]: https://deno.com/
+[install Deno]: https://docs.deno.com/runtime/getting_started/installation/
 [is a terminal]: https://doc.rust-lang.org/beta/std/io/trait.IsTerminal.html#tymethod.is_terminal
 [jq]: https://jqlang.github.io/jq/
 [third party imports]: https://docs.deno.com/runtime/fundamentals/modules/#importing-third-party-modules-and-libraries
