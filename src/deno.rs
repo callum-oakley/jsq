@@ -1,6 +1,6 @@
 use std::fmt::Write as _;
 use std::io::Write as _;
-use std::process::{Command, Output, Stdio};
+use std::process::{Command, Stdio};
 
 use anyhow::{Context, Result, anyhow, bail, ensure};
 use oxc::allocator::{Allocator, TakeIn};
@@ -10,6 +10,7 @@ use oxc::ast_visit::VisitMut;
 use oxc::codegen::Codegen;
 use oxc::parser::Parser;
 use oxc::span::{SourceType, Span};
+use serde_json::Value;
 
 #[derive(Copy, Clone)]
 pub enum Print {
@@ -26,7 +27,9 @@ pub struct Options<'a, I> {
     pub print: Print,
 }
 
-pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Result<Output> {
+pub fn eval<I: Iterator<Item = (String, String)>>(
+    options: Options<'_, I>,
+) -> Result<Option<Value>> {
     let allocator = Allocator::new();
 
     let mut program = parse(&allocator, options.script)?;
@@ -111,7 +114,32 @@ pub fn eval<I: Iterator<Item = (String, String)>>(options: Options<'_, I>) -> Re
         cmdin.write_all(code.as_bytes()).expect("writing to stdin");
     });
 
-    Ok(child.wait_with_output()?)
+    let output = child.wait_with_output()?;
+
+    if !output.status.success() {
+        // Deno will have printed the error already so exit silently.
+        std::process::exit(output.status.code().unwrap_or(1));
+    }
+
+    match options.print {
+        Print::None | Print::String => Ok(None),
+        Print::Object => {
+            let output = String::from_utf8(output.stdout)?;
+            let mut output = output.trim_end();
+            if let Some((left, right)) = output.rsplit_once('\n') {
+                println!("{left}");
+                output = right;
+            }
+
+            // undefined is a valid output of JSON.stringify
+            if output == "undefined" {
+                println!("undefined");
+                return Ok(None);
+            }
+
+            Ok(Some(output.parse()?))
+        }
+    }
 }
 
 fn parse<'a>(allocator: &'a Allocator, s: &'a str) -> Result<Program<'a>> {

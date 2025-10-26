@@ -91,7 +91,7 @@ fn try_main() -> Result<()> {
         Print::String
     };
 
-    let res = deno::eval(Options {
+    let output = deno::eval(Options {
         input: &input,
         env: std::env::vars(),
         script: &script,
@@ -99,23 +99,13 @@ fn try_main() -> Result<()> {
         print,
     })?;
 
-    if !res.status.success() {
-        // Deno will have printed the error already so exit silently.
-        std::process::exit(res.status.code().unwrap_or(1));
-    }
-
-    if matches!(print, Print::Object) {
-        let output = String::from_utf8(res.stdout)?;
-
-        // undefined is a valid output of JSON.stringify
-        if output == "undefined\n" {
-            print!("{output}");
-        } else if args.json_out {
-            print::json(&mut print::stdout(), &output).context("printing JSON")?;
+    if let Some(value) = output {
+        if args.json_out {
+            print::json(&mut print::stdout(), &value).context("printing JSON")?;
         } else if args.yaml_out {
-            print::yaml(&mut print::stdout(), &output).context("printing YAML")?;
+            print::yaml(&mut print::stdout(), &value).context("printing YAML")?;
         } else if args.toml_out {
-            print::toml(&mut print::stdout(), &output).context("printing TOML")?;
+            print::toml(&mut print::stdout(), &value).context("printing TOML")?;
         }
     }
 

@@ -232,5 +232,17 @@ fn test() -> Result<()> {
 
     assert_ok!(run(&["let x"], "", [])?, "undefined\n");
 
+    assert_ok!(
+        run(
+            &[
+                "-J",
+                r#"console.log("foo"); console.log("bar"); ({ "baz": 42 })"#
+            ],
+            "",
+            []
+        )?,
+        "foo\nbar\n{\n  \"baz\": 42\n}\n",
+    );
+
     Ok(())
 }

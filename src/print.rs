@@ -311,20 +311,20 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<(
     Ok(())
 }
 
-pub fn json(w: &mut impl WriteColor, s: &str) -> Result<()> {
-    write_json(w, 0, &s.parse()?)?;
+pub fn json(w: &mut impl WriteColor, value: &Value) -> Result<()> {
+    write_json(w, 0, value)?;
     writeln!(w)?;
     Ok(())
 }
 
-pub fn yaml(w: &mut impl WriteColor, s: &str) -> Result<()> {
-    write_yaml(w, 0, false, &s.parse()?)?;
+pub fn yaml(w: &mut impl WriteColor, value: &Value) -> Result<()> {
+    write_yaml(w, 0, false, value)?;
     writeln!(w)?;
     Ok(())
 }
 
-pub fn toml(w: &mut impl WriteColor, s: &str) -> Result<()> {
-    write_toml(w, "", &s.parse()?)?;
+pub fn toml(w: &mut impl WriteColor, value: &Value) -> Result<()> {
+    write_toml(w, "", value)?;
     writeln!(w)?;
     Ok(())
 }
