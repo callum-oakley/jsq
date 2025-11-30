@@ -23,31 +23,39 @@ use deno::{Options, Print};
 #[expect(clippy::struct_excessive_bools)]
 struct Args {
     /// Parse input as JSON.
-    #[arg(short('j'), long, conflicts_with_all(["yaml_in", "toml_in"]))]
+    #[arg(short('j'), long, conflicts_with_all(["yaml_in", "toml_in", "json5_in"]))]
     json_in: bool,
 
     /// Parse input as YAML.
-    #[arg(short('y'), long, conflicts_with_all(["json_in", "toml_in"]))]
+    #[arg(short('y'), long, conflicts_with_all(["json_in", "toml_in", "json5_in"]))]
     yaml_in: bool,
 
     /// Parse input as TOML.
-    #[arg(short('t'), long, conflicts_with_all(["json_in", "yaml_in"]))]
+    #[arg(short('t'), long, conflicts_with_all(["json_in", "yaml_in", "json5_in"]))]
     toml_in: bool,
 
+    /// Parse input as JSON5.
+    #[arg(short('5'), long, conflicts_with_all(["json_in", "yaml_in", "toml_in"]))]
+    json5_in: bool,
+
     /// Print result as JSON.
-    #[arg(short('J'), long, conflicts_with_all(["yaml_out", "toml_out", "no_out"]))]
+    #[arg(short('J'), long, conflicts_with_all(["yaml_out", "toml_out", "json5_out", "no_out"]))]
     json_out: bool,
 
     /// Print result as YAML.
-    #[arg(short('Y'), long, conflicts_with_all(["json_out", "toml_out", "no_out"]))]
+    #[arg(short('Y'), long, conflicts_with_all(["json_out", "toml_out", "json5_out", "no_out"]))]
     yaml_out: bool,
 
     /// Print result as TOML.
-    #[arg(short('T'), long, conflicts_with_all(["json_out", "yaml_out", "no_out"]))]
+    #[arg(short('T'), long, conflicts_with_all(["json_out", "yaml_out", "json5_out", "no_out"]))]
     toml_out: bool,
 
+    /// Print result as JSON5.
+    #[arg(short('%'), long, conflicts_with_all(["json_out", "yaml_out", "toml_out", "no_out"]))]
+    json5_out: bool,
+
     /// Don't print result.
-    #[arg(short('N'), long, conflicts_with_all(["json_out", "yaml_out", "toml_out"]))]
+    #[arg(short('N'), long, conflicts_with_all(["json_out", "yaml_out", "toml_out", "json5_out"]))]
     no_out: bool,
 
     /// The JavaScript to be evaluated.
@@ -75,6 +83,8 @@ fn try_main() -> Result<()> {
         input = parse::yaml(&input)?;
     } else if args.toml_in {
         input = parse::toml(&input)?;
+    } else if args.json5_in {
+        input = parse::json5(&input)?;
     }
 
     let script = if let Some(f) = args.file {
@@ -85,7 +95,7 @@ fn try_main() -> Result<()> {
 
     let print = if args.no_out {
         Print::None
-    } else if args.json_out || args.yaml_out || args.toml_out {
+    } else if args.json_out || args.yaml_out || args.toml_out || args.json5_out {
         Print::Object
     } else {
         Print::String
@@ -95,7 +105,7 @@ fn try_main() -> Result<()> {
         input: &input,
         env: std::env::vars(),
         script: &script,
-        parse: args.json_in || args.yaml_in || args.toml_in,
+        parse: args.json_in || args.yaml_in || args.toml_in || args.json5_in,
         print,
     })?;
 
@@ -106,6 +116,8 @@ fn try_main() -> Result<()> {
             print::yaml(&mut print::stdout(), &value).context("printing YAML")?;
         } else if args.toml_out {
             print::toml(&mut print::stdout(), &value).context("printing TOML")?;
+        } else if args.json5_out {
+            print::json5(&mut print::stdout(), &value).context("printing JSON5")?;
         }
     }
 

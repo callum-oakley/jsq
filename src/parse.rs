@@ -21,3 +21,10 @@ pub fn toml(s: &str) -> Result<String> {
         .context("parsing TOML")?
         .to_string())
 }
+
+/// Parse JSON5 in to a JSON string.
+pub fn json5(s: &str) -> Result<String> {
+    Ok(json5::from_str::<Value>(s)
+        .context("parsing JSON5")?
+        .to_string())
+}

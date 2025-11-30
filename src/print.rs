@@ -45,10 +45,10 @@ fn write_json(w: &mut impl WriteColor, depth: usize, value: &Value) -> Result<()
         Value::Array(arr) => {
             write!(w, "[")?;
             for (i, e) in arr.iter().enumerate() {
-                write!(w, "\n{}", " ".repeat((depth + 1) * TAB_WIDTH))?;
+                write!(w, "\n{:indent$}", "", indent = (depth + 1) * TAB_WIDTH)?;
                 write_json(w, depth + 1, e)?;
                 if i == arr.len() - 1 {
-                    write!(w, "\n{}", " ".repeat(depth * TAB_WIDTH))?;
+                    write!(w, "\n{:indent$}", "", indent = depth * TAB_WIDTH)?;
                 } else {
                     write!(w, ",")?;
                 }
@@ -58,12 +58,12 @@ fn write_json(w: &mut impl WriteColor, depth: usize, value: &Value) -> Result<()
         Value::Object(obj) => {
             write!(w, "{{")?;
             for (i, (k, v)) in obj.iter().enumerate() {
-                write!(w, "\n{}", " ".repeat((depth + 1) * TAB_WIDTH))?;
+                write!(w, "\n{:indent$}", "", indent = (depth + 1) * TAB_WIDTH)?;
                 write_with_color!(w, KEY, "{}", Value::String(k.clone()))?;
                 write!(w, ": ")?;
                 write_json(w, depth + 1, v)?;
                 if i == obj.len() - 1 {
-                    write!(w, "\n{}", " ".repeat(depth * TAB_WIDTH))?;
+                    write!(w, "\n{:indent$}", "", indent = depth * TAB_WIDTH)?;
                 } else {
                     write!(w, ",")?;
                 }
@@ -105,7 +105,13 @@ fn yaml_block_string(depth: usize, s: &str) -> Result<String> {
         write!(&mut res, "{TAB_WIDTH}")?;
     }
     for line in s.lines() {
-        write!(&mut res, "\n{}{}", " ".repeat(depth * TAB_WIDTH), line)?;
+        write!(
+            &mut res,
+            "\n{:indent$}{}",
+            "",
+            line,
+            indent = depth * TAB_WIDTH,
+        )?;
     }
     Ok(res)
 }
@@ -129,7 +135,7 @@ fn write_yaml(w: &mut impl WriteColor, depth: usize, obj_value: bool, value: &Va
             } else {
                 for (i, e) in arr.iter().enumerate() {
                     if i > 0 || obj_value {
-                        write!(w, "\n{}", " ".repeat(depth * TAB_WIDTH))?;
+                        write!(w, "\n{:indent$}", "", indent = depth * TAB_WIDTH)?;
                     }
                     write!(w, "- ")?;
                     write_yaml(w, depth + 1, false, e)?;
@@ -145,7 +151,7 @@ fn write_yaml(w: &mut impl WriteColor, depth: usize, obj_value: bool, value: &Va
             } else {
                 for (i, (k, v)) in obj.iter().enumerate() {
                     if i > 0 || obj_value {
-                        write!(w, "\n{}", " ".repeat(depth * TAB_WIDTH))?;
+                        write!(w, "\n{:indent$}", "", indent = depth * TAB_WIDTH)?;
                     }
                     write_with_color!(w, KEY, "{}", yaml_flow_string(k))?;
                     write!(w, ":")?;
@@ -325,6 +331,12 @@ pub fn yaml(w: &mut impl WriteColor, value: &Value) -> Result<()> {
 
 pub fn toml(w: &mut impl WriteColor, value: &Value) -> Result<()> {
     write_toml(w, "", value)?;
+    writeln!(w)?;
+    Ok(())
+}
+
+pub fn json5(w: &mut impl WriteColor, value: &Value) -> Result<()> {
+    json5::to_writer(&mut *w, value)?;
     writeln!(w)?;
     Ok(())
 }

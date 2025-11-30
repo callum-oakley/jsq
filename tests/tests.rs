@@ -104,11 +104,18 @@ fn test() -> Result<()> {
             .starts_with("Evaluate some JavaScript and print the result")
     );
 
+    assert_ok!(
+        run(&["`hello ${\"WORLD\".toLowerCase()}`"], "", [])?,
+        "hello world\n"
+    );
+
     assert_ok!(run(&["2 + 3"], "", [])?, "5\n");
 
     assert_ok!(run(&["const x = 5; x * x"], "", [])?, "25\n");
 
     assert_ok!(run(&["-jJ", "$.foo"], r#"{ "foo": 42 }"#, [])?, "42\n");
+
+    assert_ok!(run(&["-5J", "$.foo"], r#"{ foo: 42, }"#, [])?, "42\n");
 
     assert_ok!(
         run(&["-jJ", "$.foo"], r#"{ "foo": "bar" }"#, [])?,
@@ -158,9 +165,11 @@ fn test() -> Result<()> {
     assert_ok!(run(&["-J", "undefined"], "", [])?, "undefined\n");
     assert_ok!(run(&["-Y", "undefined"], "", [])?, "undefined\n");
     assert_ok!(run(&["-T", "undefined"], "", [])?, "undefined\n");
+    assert_ok!(run(&["-%", "undefined"], "", [])?, "undefined\n");
     assert_ok!(run(&["-J", "() => {}"], "", [])?, "undefined\n");
     assert_ok!(run(&["-Y", "() => {}"], "", [])?, "undefined\n");
     assert_ok!(run(&["-T", "() => {}"], "", [])?, "undefined\n");
+    assert_ok!(run(&["-%", "() => {}"], "", [])?, "undefined\n");
 
     assert_eq!(
         convert("-tY", &convert("-jT", &convert("-yJ", &publish_yaml)?)?)?,
@@ -183,6 +192,8 @@ fn test() -> Result<()> {
     );
 
     assert_eq!(convert("-jY", "{ \"foo\": \"true\" }")?, "foo: \"true\"\n");
+
+    assert_eq!(convert("-j%", "{ \"foo\": 42 }")?, "{\n  foo: 42,\n}\n");
 
     assert_ok!(
         run(
