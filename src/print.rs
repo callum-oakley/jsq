@@ -317,6 +317,59 @@ fn write_toml(w: &mut impl WriteColor, context: &str, value: &Value) -> Result<(
     Ok(())
 }
 
+fn write_json5_key(w: &mut impl WriteColor, k: &str) -> Result<()> {
+    let mut chars = k.chars();
+    if let Some(first) = chars.next()
+        && json5::char::is_json5_identifier_start(first)
+        && chars.all(json5::char::is_json5_identifier)
+    {
+        write_with_color!(w, KEY, "{k}")?;
+    } else {
+        let k = json5::to_string(&k)?;
+        write_with_color!(w, KEY, "{k}")?;
+    }
+    Ok(())
+}
+
+fn write_json5(w: &mut impl WriteColor, depth: usize, value: &Value) -> Result<()> {
+    match value {
+        Value::Array(arr) => {
+            write!(w, "[")?;
+            for (i, e) in arr.iter().enumerate() {
+                write!(w, "\n{:indent$}", "", indent = (depth + 1) * TAB_WIDTH)?;
+                write_json5(w, depth + 1, e)?;
+                if i == arr.len() - 1 {
+                    write!(w, ",\n{:indent$}", "", indent = depth * TAB_WIDTH)?;
+                } else {
+                    write!(w, ",")?;
+                }
+            }
+            write!(w, "]")?;
+        }
+        Value::Object(obj) => {
+            write!(w, "{{")?;
+            for (i, (k, v)) in obj.iter().enumerate() {
+                write!(w, "\n{:indent$}", "", indent = (depth + 1) * TAB_WIDTH)?;
+                write_json5_key(w, k)?;
+                write!(w, ": ")?;
+                write_json5(w, depth + 1, v)?;
+                if i == obj.len() - 1 {
+                    write!(w, ",\n{:indent$}", "", indent = depth * TAB_WIDTH)?;
+                } else {
+                    write!(w, ",")?;
+                }
+            }
+            write!(w, "}}")?;
+        }
+        Value::String(_) => {
+            let s = json5::to_string(value)?;
+            write_with_color!(w, STR, "{s}")?;
+        }
+        _ => json5::to_writer(w, value)?,
+    }
+    Ok(())
+}
+
 pub fn json(w: &mut impl WriteColor, value: &Value) -> Result<()> {
     write_json(w, 0, value)?;
     writeln!(w)?;
@@ -336,7 +389,7 @@ pub fn toml(w: &mut impl WriteColor, value: &Value) -> Result<()> {
 }
 
 pub fn json5(w: &mut impl WriteColor, value: &Value) -> Result<()> {
-    json5::to_writer(&mut *w, value)?;
+    write_json5(w, 0, value)?;
     writeln!(w)?;
     Ok(())
 }
