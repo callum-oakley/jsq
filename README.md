@@ -26,7 +26,7 @@ Options:
   -h, --help         Print help
   -V, --version      Print version
 
-Input is avaialable in SCRIPT as $. Environment variables are available in SCRIPT prefixed by $.
+Input is available in SCRIPT as $. Environment variables are available in SCRIPT prefixed by $.
 ```
 
 ## Example

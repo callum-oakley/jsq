@@ -16,7 +16,7 @@ use deno::{Options, Print};
     version,
     arg_required_else_help(true),
     after_help([
-        "Input is avaialable in SCRIPT as $.",
+        "Input is available in SCRIPT as $.",
         "Environment variables are available in SCRIPT prefixed by $.",
     ].join(" "))
 )]
