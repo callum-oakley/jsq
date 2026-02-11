@@ -63,9 +63,9 @@ parsing STDIN from that format. If no input format is specified then `$` contain
 text. If STDIN [is a terminal][] then `$` is the empty string.
 
 If any of the `--FORMAT-out` flags described in the help are set, then the value of the final
-statement in `SCRIPT` is printed to STDOUT after being serialized in the specified format. If no
-output format is specified then the result is printed as plain text. If `--no-out` is set then the
-result is not printed.
+statement in `SCRIPT` is printed to STDOUT after being serialized in that format. If no output
+format is specified then the result is printed as plain text. If `--no-out` is set then the result
+is not printed.
 
 Environment variables are available in `SCRIPT` prefixed by `$`. e.g. `USER` is available as
 `$USER`.
