@@ -104,7 +104,7 @@ cargo install jsq
 There are binaries for Linux, MacOS, and Windows [attached to each release][]. [Install Deno][],
 download a binary, and make it available in your PATH.
 
-[a bunch of superheros]: https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json
+[a bunch of superheroes]: https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json
 [attached to each release]: https://github.com/callum-oakley/jsq/releases
 [brew]: https://brew.sh/
 [cargo]: https://www.rust-lang.org/tools/install
