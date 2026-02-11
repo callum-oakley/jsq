@@ -17,10 +17,12 @@ Options:
   -y, --yaml-in      Parse input as YAML
   -t, --toml-in      Parse input as TOML
   -5, --json5-in     Parse input as JSON5
+  -c, --csv-in       Parse input as CSV
   -J, --json-out     Print result as JSON
   -Y, --yaml-out     Print result as YAML
   -T, --toml-out     Print result as TOML
   -%, --json5-out    Print result as JSON5
+  -C, --csv-out      Print result as CSV
   -N, --no-out       Don't print result
   -f, --file <FILE>  Read SCRIPT from FILE
   -h, --help         Print help
@@ -31,7 +33,7 @@ Input is available in SCRIPT as $. Environment variables are available in SCRIPT
 
 ## Example
 
-Suppose we have some JSON which contains [a bunch of superheros][] and we want to find the hero with
+Suppose we have some JSON which contains [a bunch of superheroes][] and we want to find the hero with
 the power of "Immortality":
 
 ```
@@ -56,14 +58,14 @@ the power of "Immortality":
 The provided `SCRIPT` is evaluated by [Deno][] so the Deno runtime and standard library are
 available, as are [third party imports][].
 
-`$` contains the result of reading STDIN as text, or of parsing it as JSON if the `-j` flag is set,
-YAML if the `-y` flag is set, TOML if the `-t` flag is set, or JSON5 if the `-5` flag is set. If
-STDIN [is a terminal][] then `$` is the empty string.
+If any of the `--FORMAT-in` flags described in the help are set then `$` contains the result of
+parsing STDIN from that format. If no input format is specified then `$` contains STDIN as plain
+text. If STDIN [is a terminal][] then `$` is the empty string.
 
-The value of the final statement in `SCRIPT` (or `undefined` if the final statment is not an
-expression statment) is printed to STDOUT – after being serialized as JSON if the `-J` flag is set,
-YAML if the `-Y` flag is set, TOML if the `-T` flag is set, or JSON5 if the `-%` flag is set –
-unless the `-N` flag is set.
+If any of the `--FORMAT-out` flags described in the help are set, then the value of the final
+statement in `SCRIPT` is printed to STDOUT after being serialized in the specified format. If no
+output format is specified then the result is printed as plain text. If `--no-out` is set then the
+result is not printed.
 
 Environment variables are available in `SCRIPT` prefixed by `$`. e.g. `USER` is available as
 `$USER`.

@@ -1,7 +1,8 @@
 use std::fmt::Write;
 use std::{io::IsTerminal, sync::LazyLock};
 
-use anyhow::{Error, Result, bail};
+use anyhow::{Context, Error, Result, bail};
+use indexmap::IndexSet;
 use serde_json::Value;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
@@ -391,6 +392,38 @@ pub fn toml(w: &mut impl WriteColor, value: &Value) -> Result<()> {
 pub fn json5(w: &mut impl WriteColor, value: &Value) -> Result<()> {
     write_json5(w, 0, value)?;
     writeln!(w)?;
+    Ok(())
+}
+
+pub fn csv(w: &mut impl WriteColor, value: &Value) -> Result<()> {
+    let rows = value
+        .as_array()
+        .context("expected array")?
+        .iter()
+        .map(|row| row.as_object().context("expected object"))
+        .collect::<Result<Vec<_>>>()?;
+
+    if rows.is_empty() {
+        writeln!(w)?;
+        return Ok(());
+    }
+
+    let header: IndexSet<_> = rows.iter().flat_map(|&row| row.keys()).collect();
+
+    let mut writer = csv::Writer::from_writer(w);
+    writer.write_record(&header)?;
+    for row in rows {
+        writer.write_record(header.iter().map(|&col| {
+            row.get(col).map_or(String::new(), |v| match v {
+                // Write strings as they are, the CSV writer will take care of quoting...
+                Value::String(s) => s.to_owned(),
+                // ...but serialise anything else to a string.
+                _ => v.to_string(),
+            })
+        }))?;
+    }
+    writer.flush()?;
+
     Ok(())
 }
 

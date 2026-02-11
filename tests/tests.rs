@@ -166,10 +166,12 @@ fn test() -> Result<()> {
     assert_ok!(run(&["-Y", "undefined"], "", [])?, "undefined\n");
     assert_ok!(run(&["-T", "undefined"], "", [])?, "undefined\n");
     assert_ok!(run(&["-%", "undefined"], "", [])?, "undefined\n");
+    assert_ok!(run(&["-C", "undefined"], "", [])?, "undefined\n");
     assert_ok!(run(&["-J", "() => {}"], "", [])?, "undefined\n");
     assert_ok!(run(&["-Y", "() => {}"], "", [])?, "undefined\n");
     assert_ok!(run(&["-T", "() => {}"], "", [])?, "undefined\n");
     assert_ok!(run(&["-%", "() => {}"], "", [])?, "undefined\n");
+    assert_ok!(run(&["-C", "() => {}"], "", [])?, "undefined\n");
 
     assert_eq!(
         convert("-tY", &convert("-jT", &convert("-yJ", &publish_yaml)?)?)?,
@@ -253,6 +255,22 @@ fn test() -> Result<()> {
             []
         )?,
         "foo\nbar\n{\n  \"baz\": 42\n}\n",
+    );
+
+    assert_eq!(
+        convert(
+            "-cJ",
+            "a,b,c\nfoo,42,true\n\"\"\"bar\"\"\",-1.23,false\n\"foo,bar\",,null\n",
+        )?,
+        "[\n  {\n    \"a\": \"foo\",\n    \"b\": 42,\n    \"c\": true\n  },\n  {\n    \"a\": \"\\\"bar\\\"\",\n    \"b\": -1.23,\n    \"c\": false\n  },\n  {\n    \"a\": \"foo,bar\",\n    \"b\": \"\",\n    \"c\": null\n  }\n]\n"
+    );
+
+    assert_eq!(
+        convert(
+            "-cC",
+            "a,b,c\nfoo,42,true\n\"\"\"bar\"\"\",-1.23,false\n\"foo,bar\",,null\n",
+        )?,
+        "a,b,c\nfoo,42,true\n\"\"\"bar\"\"\",-1.23,false\n\"foo,bar\",,null\n",
     );
 
     Ok(())
