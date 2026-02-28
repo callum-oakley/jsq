@@ -98,11 +98,9 @@ fn test() -> Result<()> {
     let cargo_toml = include_str!("../Cargo.toml").replace("\r\n", "\n");
     let publish_yaml = include_str!("../.github/workflows/publish.yaml").replace("\r\n", "\n");
 
-    assert!(
-        run(&[], "", [])?
-            .stderr
-            .starts_with("Evaluate some JavaScript and print the result")
-    );
+    assert!(run(&[], "", [])?.stderr.starts_with(
+        "Read data from STDIN, manipulate it with some JavaScript, write the result to STDOUT"
+    ));
 
     assert_ok!(
         run(&["`hello ${\"WORLD\".toLowerCase()}`"], "", [])?,
@@ -206,7 +204,7 @@ fn test() -> Result<()> {
             &publish_yaml,
             []
         )?,
-        "run:\n  shell: bash\n\n",
+        "run:\n  shell: bash\n",
     );
 
     assert_ok!(
@@ -218,7 +216,7 @@ fn test() -> Result<()> {
             &cargo_toml,
             []
         )?,
-        "version = \"1.0.145\"\nfeatures = [\"preserve_order\"]\n\n",
+        "version = \"1.0.145\"\nfeatures = [\"preserve_order\"]\n",
     );
 
     assert_ok!(
@@ -271,6 +269,22 @@ fn test() -> Result<()> {
             "a,b,c\nfoo,42,true\n\"\"\"bar\"\"\",-1.23,false\n\"foo,bar\",,null\n",
         )?,
         "a,b,c\nfoo,42,true\n\"\"\"bar\"\"\",-1.23,false\n\"foo,bar\",,null\n",
+    );
+
+    Ok(())
+}
+
+#[test]
+fn readme_help() -> Result<()> {
+    let readme = include_str!("../README.md").replace("\r\n", "\n");
+    assert_eq!(
+        run(&["--help"], "", [])?,
+        run(
+            &[r"$.match(/(?<=## Help\n\n```\n)[^`]*(?=\n```)/)[0]"],
+            &readme,
+            []
+        )?,
+        "fix with `jog update-readme`"
     );
 
     Ok(())

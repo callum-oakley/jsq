@@ -67,7 +67,16 @@ pub fn eval<I: Iterator<Item = (String, String)>>(
             program.body.push(sub_undefined(
                 &allocator,
                 match options.print {
-                    Print::String => "console.log(undefined);",
+                    Print::String => {
+                        r#"
+                            ((res) => {
+                                if (typeof res === "string" && res.endsWith("\n")) {
+                                    res = res.slice(0, -1);
+                                }
+                                console.log(res);
+                            })(undefined);
+                        "#
+                    }
                     Print::Object => "console.log(JSON.stringify(undefined));",
                     Print::None => unreachable!(),
                 },
