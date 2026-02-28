@@ -10,7 +10,7 @@ use anyhow::{Context, Result};
 use clap::Parser;
 use deno::{Options, Print};
 
-/// Evaluate some JavaScript and print the result.
+/// Read data from STDIN, manipulate it with some JavaScript, write the result to STDOUT.
 #[derive(Parser)]
 #[command(
     version,

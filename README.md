@@ -1,11 +1,11 @@
 # jsq
 
-jsq is a tool for evaluating some JavaScript and printing the result.
+jsq is a tool for manipulating data with JavaScript.
 
 ## Help
 
 ```
-Evaluate some JavaScript and print the result
+Read data from STDIN, manipulate it with some JavaScript, write the result to STDOUT
 
 Usage: jsq [OPTIONS] [SCRIPT]
 
@@ -33,8 +33,8 @@ Input is available in SCRIPT as $. Environment variables are available in SCRIPT
 
 ## Example
 
-Suppose we have some JSON which contains [a bunch of superheroes][] and we want to find the hero with
-the power of "Immortality":
+Suppose we have some JSON which contains [a bunch of superheroes][] and we want to find the hero
+with the power of "Immortality":
 
 ```
 > curl https://mdn.github.io/learning-area/javascript/oojs/json/superheroes.json |
