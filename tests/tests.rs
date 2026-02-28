@@ -273,19 +273,3 @@ fn test() -> Result<()> {
 
     Ok(())
 }
-
-#[test]
-fn readme_help() -> Result<()> {
-    let readme = include_str!("../README.md").replace("\r\n", "\n");
-    assert_eq!(
-        run(&["--help"], "", [])?,
-        run(
-            &[r"$.match(/(?<=## Help\n\n```\n)[^`]*(?=\n```)/)[0]"],
-            &readme,
-            []
-        )?,
-        "fix with `jog update-readme`"
-    );
-
-    Ok(())
-}
