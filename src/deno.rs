@@ -86,6 +86,7 @@ pub fn eval<I: Iterator<Item = (String, String)>>(
 
     let mut child = Command::new("deno")
         .arg("run")
+        .arg("--no-config")
         .arg("--allow-all")
         .arg("-")
         .stdin(Stdio::piped())
