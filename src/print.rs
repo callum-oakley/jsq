@@ -458,3 +458,17 @@ pub fn stdout() -> StandardStream {
 pub fn stderr() -> StandardStream {
     StandardStream::stderr(color_choice(&std::io::stderr()))
 }
+
+/// Recursively sort object keys so that objects print with keys in sorted order. Relies on the
+/// `preserve_order` feature of Serde JSON.
+pub fn sort(value: &Value) -> Value {
+    match value {
+        Value::Array(arr) => Value::Array(arr.iter().map(sort).collect()),
+        Value::Object(obj) => {
+            let mut keys: Vec<_> = obj.keys().collect();
+            keys.sort_unstable();
+            Value::Object(keys.iter().map(|&k| (k.clone(), sort(&obj[k]))).collect())
+        }
+        _ => value.clone(),
+    }
+}

@@ -271,5 +271,10 @@ fn test() -> Result<()> {
         "a,b,c\nfoo,42,true\n\"\"\"bar\"\"\",-1.23,false\n\"foo,bar\",,null\n",
     );
 
+    assert_ok!(
+        run(&["-Js", r#"({ b: "bar", a: "foo" })"#], "", [])?,
+        "{\n  \"a\": \"foo\",\n  \"b\": \"bar\"\n}\n",
+    );
+
     Ok(())
 }

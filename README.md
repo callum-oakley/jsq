@@ -24,6 +24,7 @@ Options:
   -%, --json5-out    Print result as JSON5
   -C, --csv-out      Print result as CSV
   -N, --no-out       Don't print result
+  -s, --sort         Print object keys in sorted order
   -f, --file <FILE>  Read SCRIPT from FILE
   -h, --help         Print help
   -V, --version      Print version

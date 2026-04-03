@@ -66,6 +66,10 @@ struct Args {
     #[arg(short('N'), long, conflicts_with_all(["json_out", "yaml_out", "toml_out", "json5_out", "csv_out"]))]
     no_out: bool,
 
+    /// Print object keys in sorted order.
+    #[arg(short('s'), long)]
+    sort: bool,
+
     /// The JavaScript to be evaluated.
     #[arg(default_value("$"), conflicts_with("file"))]
     script: String,
@@ -120,6 +124,11 @@ fn try_main() -> Result<()> {
     })?;
 
     if let Some(value) = output {
+        let value = if args.sort {
+            print::sort(&value)
+        } else {
+            value
+        };
         if args.json_out {
             print::json(&mut print::stdout(), &value).context("printing JSON")?;
         } else if args.yaml_out {
