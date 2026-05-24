@@ -6,14 +6,13 @@ mod print;
 
 use std::{
     fs::File,
-    io::{IsTerminal, Read},
+    io::{IsTerminal, Read, Write as _},
     mem,
 };
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Parser;
 use deno::{Options, Print};
-use serde_json::Value;
 use termcolor::{NoColor, WriteColor};
 
 /// Read data from STDIN, manipulate it with some JavaScript, write the result to STDOUT.
@@ -80,7 +79,7 @@ struct Args {
     #[arg(short('f'), long)]
     file: bool,
 
-    /// Edit INPUT file in-place.
+    /// Edit INPUT file in-place instead of writing to STDOUT.
     #[arg(short('i'), long, requires("input"))]
     in_place: bool,
 
@@ -138,41 +137,61 @@ fn try_main() -> Result<()> {
         script: &script,
         parse: args.json_in || args.yaml_in || args.toml_in || args.json5_in || args.csv_in,
         print,
+        capture_output: print == Print::Object || args.in_place,
     })?;
 
-    if let Some(value) = output {
-        fn print(args: &Args, value: &Value, w: &mut impl WriteColor) -> Result<()> {
-            if args.json_out {
-                print::json(w, value).context("printing JSON")?;
-            } else if args.yaml_out {
-                print::yaml(w, value).context("printing YAML")?;
-            } else if args.toml_out {
-                print::toml(w, value).context("printing TOML")?;
-            } else if args.json5_out {
-                print::json5(w, value).context("printing JSON5")?;
-            } else if args.csv_out {
-                print::csv(w, value).context("printing CSV")?;
-            }
-            Ok(())
-        }
-
-        let value = if args.sort {
-            print::sort(&value)
-        } else {
-            value
-        };
-
+    if let Some(output) = output {
         if args.in_place {
-            print(
+            print_output(
                 &args,
-                &value,
+                print,
+                &output,
                 &mut NoColor::new(File::create(
                     args.input.as_ref().expect("--in-place requires --input"),
                 )?),
             )?;
         } else {
-            print(&args, &value, &mut print::stdout())?;
+            print_output(&args, print, &output, &mut print::stdout())?;
         }
+    }
+
+    Ok(())
+}
+
+fn print_output(args: &Args, print: Print, output: &str, w: &mut impl WriteColor) -> Result<()> {
+    if print == Print::String {
+        write!(w, "{output}")?;
+        return Ok(());
+    }
+
+    let mut output = output.trim_end();
+    if let Some((left, right)) = output.rsplit_once('\n') {
+        writeln!(&mut print::stderr(), "{left}")?;
+        output = right;
+    }
+
+    // JSON.stringify will happily return undefined which isn't valid JSON
+    if output == "undefined" {
+        bail!("output is undefined")
+    }
+
+    let mut value = output.parse()?;
+    if args.sort {
+        value = print::sort(&value);
+    }
+
+    if args.json_out {
+        print::json(w, &value).context("printing JSON")?;
+    } else if args.yaml_out {
+        print::yaml(w, &value).context("printing YAML")?;
+    } else if args.toml_out {
+        print::toml(w, &value).context("printing TOML")?;
+    } else if args.json5_out {
+        print::json5(w, &value).context("printing JSON5")?;
+    } else if args.csv_out {
+        print::csv(w, &value).context("printing CSV")?;
+    } else {
+        unreachable!()
     }
 
     Ok(())

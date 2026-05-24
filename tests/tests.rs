@@ -160,16 +160,15 @@ fn test() -> Result<()> {
 
     assert_ok!(run(&["-tT"], &cargo_toml, [])?, cargo_toml);
 
-    assert_ok!(run(&["-J", "undefined"], "", [])?, "undefined\n");
-    assert_ok!(run(&["-Y", "undefined"], "", [])?, "undefined\n");
-    assert_ok!(run(&["-T", "undefined"], "", [])?, "undefined\n");
-    assert_ok!(run(&["-%", "undefined"], "", [])?, "undefined\n");
-    assert_ok!(run(&["-C", "undefined"], "", [])?, "undefined\n");
-    assert_ok!(run(&["-J", "() => {}"], "", [])?, "undefined\n");
-    assert_ok!(run(&["-Y", "() => {}"], "", [])?, "undefined\n");
-    assert_ok!(run(&["-T", "() => {}"], "", [])?, "undefined\n");
-    assert_ok!(run(&["-%", "() => {}"], "", [])?, "undefined\n");
-    assert_ok!(run(&["-C", "() => {}"], "", [])?, "undefined\n");
+    assert_ok!(run(&["undefined"], "", [])?, "undefined\n");
+    assert_err!(
+        run(&["-J", "undefined"], "", [])?,
+        "error: output is undefined\n"
+    );
+    assert_err!(
+        run(&["-J", "() => {}"], "", [])?,
+        "error: output is undefined\n"
+    );
 
     assert_eq!(
         convert("-tY", &convert("-jT", &convert("-yJ", &publish_yaml)?)?)?,
@@ -259,7 +258,7 @@ fn test() -> Result<()> {
             "",
             []
         )?,
-        "foo\nbar\n{\n  \"baz\": 42\n}\n",
+        "{\n  \"baz\": 42\n}\n",
     );
 
     assert_eq!(

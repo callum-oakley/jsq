@@ -10,9 +10,8 @@ use oxc::ast_visit::VisitMut;
 use oxc::codegen::Codegen;
 use oxc::parser::Parser;
 use oxc::span::{SourceType, Span};
-use serde_json::Value;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum Print {
     None,
     String,
@@ -25,11 +24,12 @@ pub struct Options<'a, I> {
     pub script: &'a str,
     pub parse: bool,
     pub print: Print,
+    pub capture_output: bool,
 }
 
 pub fn eval<I: Iterator<Item = (String, String)>>(
     options: Options<'_, I>,
-) -> Result<Option<Value>> {
+) -> Result<Option<String>> {
     let allocator = Allocator::new();
     let ast_builder = AstBuilder::new(&allocator);
 
@@ -64,7 +64,7 @@ pub fn eval<I: Iterator<Item = (String, String)>>(
         }
     }
 
-    if !matches!(options.print, Print::None) {
+    if options.print != Print::None {
         let statement = program.body.pop().expect("program is not empty");
         if let Statement::ExpressionStatement(mut expression_statement) = statement {
             program.body.push(sub_undefined(
@@ -102,9 +102,9 @@ pub fn eval<I: Iterator<Item = (String, String)>>(
         .arg("--allow-all")
         .arg("-")
         .stdin(Stdio::piped())
-        .stdout(match options.print {
-            Print::Object => Stdio::piped(),
-            _ => Stdio::inherit(),
+        .stdout(match options.capture_output {
+            true => Stdio::piped(),
+            false => Stdio::inherit(),
         })
         .spawn()
         .map_err(|err| {
@@ -134,24 +134,10 @@ pub fn eval<I: Iterator<Item = (String, String)>>(
         std::process::exit(output.status.code().unwrap_or(1));
     }
 
-    match options.print {
-        Print::None | Print::String => Ok(None),
-        Print::Object => {
-            let output = String::from_utf8(output.stdout)?;
-            let mut output = output.trim_end();
-            if let Some((left, right)) = output.rsplit_once('\n') {
-                println!("{left}");
-                output = right;
-            }
-
-            // undefined is a valid output of JSON.stringify
-            if output == "undefined" {
-                println!("undefined");
-                return Ok(None);
-            }
-
-            Ok(Some(output.parse()?))
-        }
+    if options.capture_output {
+        Ok(Some(String::from_utf8(output.stdout)?))
+    } else {
+        Ok(None)
     }
 }
 
