@@ -70,23 +70,36 @@ struct Args {
     #[arg(short('s'), long)]
     sort: bool,
 
+    /// Read SCRIPT from a file.
+    #[arg(short('f'), long)]
+    file: bool,
+
     /// The JavaScript to be evaluated.
-    #[arg(default_value("$"), conflicts_with("file"))]
+    #[arg(default_value("$"))]
     script: String,
 
-    /// Read SCRIPT from FILE.
-    #[arg(short('f'), long, conflicts_with("script"))]
-    file: Option<String>,
+    /// File to read input from instead of STDIN.
+    input: Option<String>,
 }
 
 fn try_main() -> Result<()> {
     let args = Args::parse();
 
+    let script = if args.file {
+        std::fs::read_to_string(args.script)?
+    } else {
+        args.script
+    };
+
     let mut input = String::new();
 
-    let mut stdin = std::io::stdin();
-    if !stdin.is_terminal() {
-        stdin.read_to_string(&mut input)?;
+    if let Some(f) = args.input {
+        input = std::fs::read_to_string(f)?;
+    } else {
+        let mut stdin = std::io::stdin();
+        if !stdin.is_terminal() {
+            stdin.read_to_string(&mut input)?;
+        }
     }
 
     if args.json_in {
@@ -100,12 +113,6 @@ fn try_main() -> Result<()> {
     } else if args.csv_in {
         input = parse::csv(&input)?;
     }
-
-    let script = if let Some(f) = args.file {
-        std::fs::read_to_string(f)?
-    } else {
-        args.script
-    };
 
     let print = if args.no_out {
         Print::None

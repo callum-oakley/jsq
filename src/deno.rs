@@ -31,6 +31,7 @@ pub fn eval<I: Iterator<Item = (String, String)>>(
     options: Options<'_, I>,
 ) -> Result<Option<Value>> {
     let allocator = Allocator::new();
+    let ast_builder = AstBuilder::new(&allocator);
 
     let mut program = parse(&allocator, options.script)?;
 
@@ -43,7 +44,7 @@ pub fn eval<I: Iterator<Item = (String, String)>>(
             } else {
                 "const $ = undefined;"
             },
-            string_literal(&allocator, options.input),
+            string_literal(&ast_builder, options.input),
         )?,
     );
 
@@ -54,8 +55,10 @@ pub fn eval<I: Iterator<Item = (String, String)>>(
                 0,
                 sub_undefined(
                     &allocator,
-                    AstBuilder::new(&allocator).str(&format!("const ${k} = undefined;")),
-                    string_literal(&allocator, AstBuilder::new(&allocator).str(&v)),
+                    ast_builder
+                        .str(&format!("const ${k} = undefined;"))
+                        .as_str(),
+                    string_literal(&ast_builder, ast_builder.str(&v).as_str()),
                 )?,
             );
         }
@@ -202,10 +205,6 @@ fn sub_undefined<'a>(
     Ok(statement)
 }
 
-fn string_literal<'a>(allocator: &'a Allocator, s: &'a str) -> Expression<'a> {
-    Expression::StringLiteral(AstBuilder::new(allocator).alloc_string_literal(
-        Span::new(0, 0),
-        s,
-        None,
-    ))
+fn string_literal<'a>(ast_builder: &'a AstBuilder, s: &'a str) -> Expression<'a> {
+    Expression::StringLiteral(ast_builder.alloc_string_literal(Span::new(0, 0), s, None))
 }

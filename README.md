@@ -7,27 +7,28 @@ jsq is a tool for manipulating data with JavaScript.
 ```
 Read data from STDIN, manipulate it with some JavaScript, write the result to STDOUT
 
-Usage: jsq [OPTIONS] [SCRIPT]
+Usage: jsq [OPTIONS] [SCRIPT] [INPUT]
 
 Arguments:
   [SCRIPT]  The JavaScript to be evaluated [default: $]
+  [INPUT]   File to read input from instead of STDIN
 
 Options:
-  -j, --json-in      Parse input as JSON
-  -y, --yaml-in      Parse input as YAML
-  -t, --toml-in      Parse input as TOML
-  -5, --json5-in     Parse input as JSON5
-  -c, --csv-in       Parse input as CSV
-  -J, --json-out     Print result as JSON
-  -Y, --yaml-out     Print result as YAML
-  -T, --toml-out     Print result as TOML
-  -%, --json5-out    Print result as JSON5
-  -C, --csv-out      Print result as CSV
-  -N, --no-out       Don't print result
-  -s, --sort         Print object keys in sorted order
-  -f, --file <FILE>  Read SCRIPT from FILE
-  -h, --help         Print help
-  -V, --version      Print version
+  -j, --json-in    Parse input as JSON
+  -y, --yaml-in    Parse input as YAML
+  -t, --toml-in    Parse input as TOML
+  -5, --json5-in   Parse input as JSON5
+  -c, --csv-in     Parse input as CSV
+  -J, --json-out   Print result as JSON
+  -Y, --yaml-out   Print result as YAML
+  -T, --toml-out   Print result as TOML
+  -%, --json5-out  Print result as JSON5
+  -C, --csv-out    Print result as CSV
+  -N, --no-out     Don't print result
+  -s, --sort       Print object keys in sorted order
+  -f, --file       Read SCRIPT from a file
+  -h, --help       Print help
+  -V, --version    Print version
 
 Input is available in SCRIPT as $. Environment variables are available in SCRIPT prefixed by $.
 ```

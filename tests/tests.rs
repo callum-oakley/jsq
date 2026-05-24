@@ -216,7 +216,7 @@ fn test() -> Result<()> {
             &cargo_toml,
             []
         )?,
-        "version = \"1.0.145\"\nfeatures = [\"preserve_order\"]\n",
+        "version = \"1.0.150\"\nfeatures = [\"preserve_order\"]\n",
     );
 
     assert_ok!(
@@ -228,6 +228,11 @@ fn test() -> Result<()> {
             "",
             []
         )?,
+        "jsq\n",
+    );
+
+    assert_ok!(
+        run(&["-t", "$.package.name", "cargo.toml"], "", [])?,
         "jsq\n",
     );
 
