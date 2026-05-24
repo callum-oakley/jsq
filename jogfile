@@ -1,6 +1,3 @@
 update-readme
-  cat README.md |
-    help="$(cargo run --quiet -- --help 2>&1)" \
-    jsq '$.replace(/(?<=## Help\n\n```\n)[^`]*(?=\n```)/, $help)' \
-    > README.md.new &&
-  mv README.md.new README.md
+  help="$(cargo run --quiet -- --help 2>&1)" \
+    jsq '$.replace(/(?<=## Help\n\n```\n)[^`]*(?=\n```)/, $help)' README.md -i
