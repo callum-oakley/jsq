@@ -4,11 +4,17 @@ mod deno;
 mod parse;
 mod print;
 
-use std::io::{IsTerminal, Read};
+use std::{
+    fs::File,
+    io::{IsTerminal, Read},
+    mem,
+};
 
 use anyhow::{Context, Result};
 use clap::Parser;
 use deno::{Options, Print};
+use serde_json::Value;
+use termcolor::{NoColor, WriteColor};
 
 /// Read data from STDIN, manipulate it with some JavaScript, write the result to STDOUT.
 #[derive(Parser)]
@@ -74,6 +80,10 @@ struct Args {
     #[arg(short('f'), long)]
     file: bool,
 
+    /// Edit INPUT file in-place.
+    #[arg(short('i'), long, requires("input"))]
+    in_place: bool,
+
     /// The JavaScript to be evaluated.
     #[arg(default_value("$"))]
     script: String,
@@ -83,17 +93,17 @@ struct Args {
 }
 
 fn try_main() -> Result<()> {
-    let args = Args::parse();
+    let mut args = Args::parse();
 
     let script = if args.file {
-        std::fs::read_to_string(args.script)?
+        std::fs::read_to_string(mem::take(&mut args.script))?
     } else {
-        args.script
+        mem::take(&mut args.script)
     };
 
     let mut input = String::new();
 
-    if let Some(f) = args.input {
+    if let Some(f) = &args.input {
         input = std::fs::read_to_string(f)?;
     } else {
         let mut stdin = std::io::stdin();
@@ -131,21 +141,37 @@ fn try_main() -> Result<()> {
     })?;
 
     if let Some(value) = output {
+        fn print(args: &Args, value: &Value, w: &mut impl WriteColor) -> Result<()> {
+            if args.json_out {
+                print::json(w, value).context("printing JSON")?;
+            } else if args.yaml_out {
+                print::yaml(w, value).context("printing YAML")?;
+            } else if args.toml_out {
+                print::toml(w, value).context("printing TOML")?;
+            } else if args.json5_out {
+                print::json5(w, value).context("printing JSON5")?;
+            } else if args.csv_out {
+                print::csv(w, value).context("printing CSV")?;
+            }
+            Ok(())
+        }
+
         let value = if args.sort {
             print::sort(&value)
         } else {
             value
         };
-        if args.json_out {
-            print::json(&mut print::stdout(), &value).context("printing JSON")?;
-        } else if args.yaml_out {
-            print::yaml(&mut print::stdout(), &value).context("printing YAML")?;
-        } else if args.toml_out {
-            print::toml(&mut print::stdout(), &value).context("printing TOML")?;
-        } else if args.json5_out {
-            print::json5(&mut print::stdout(), &value).context("printing JSON5")?;
-        } else if args.csv_out {
-            print::csv(&mut print::stdout(), &value).context("printing CSV")?;
+
+        if args.in_place {
+            print(
+                &args,
+                &value,
+                &mut NoColor::new(File::create(
+                    args.input.as_ref().expect("--in-place requires --input"),
+                )?),
+            )?;
+        } else {
+            print(&args, &value, &mut print::stdout())?;
         }
     }
 

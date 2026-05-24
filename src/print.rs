@@ -106,7 +106,7 @@ fn write_yaml_block_string(w: &mut impl WriteColor, depth: usize, s: &str) -> Re
         write!(w, "{TAB_WIDTH}")?;
     }
     for line in s.lines() {
-        write!(w, "\n{:indent$}{}", "", line, indent = depth * TAB_WIDTH,)?;
+        write!(w, "\n{:indent$}{}", "", line, indent = depth * TAB_WIDTH)?;
     }
     Ok(())
 }

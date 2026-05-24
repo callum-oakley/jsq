@@ -27,6 +27,7 @@ Options:
   -N, --no-out     Don't print result
   -s, --sort       Print object keys in sorted order
   -f, --file       Read SCRIPT from a file
+  -i, --in-place   Edit INPUT file in-place
   -h, --help       Print help
   -V, --version    Print version
 

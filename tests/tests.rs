@@ -211,12 +211,14 @@ fn test() -> Result<()> {
         run(
             &[r#"
             import * as toml from "jsr:@std/toml";
-            toml.stringify(toml.parse($).dependencies.serde_json)
+            const serdeJsonDependencies = toml.parse($).dependencies.serde_json;
+            serdeJsonDependencies.version = "X.X.X";
+            toml.stringify(serdeJsonDependencies)
             "#],
             &cargo_toml,
             []
         )?,
-        "version = \"1.0.150\"\nfeatures = [\"preserve_order\"]\n",
+        "version = \"X.X.X\"\nfeatures = [\"preserve_order\"]\n",
     );
 
     assert_ok!(
@@ -232,7 +234,7 @@ fn test() -> Result<()> {
     );
 
     assert_ok!(
-        run(&["-t", "$.package.name", "cargo.toml"], "", [])?,
+        run(&["-t", "$.package.name", "Cargo.toml"], "", [])?,
         "jsq\n",
     );
 
