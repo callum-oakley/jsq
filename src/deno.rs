@@ -102,10 +102,7 @@ pub fn eval<I: Iterator<Item = (String, String)>>(
         .arg("--allow-all")
         .arg("-")
         .stdin(Stdio::piped())
-        .stdout(match options.capture_output {
-            true => Stdio::piped(),
-            false => Stdio::inherit(),
-        })
+        .stdout(if options.capture_output { Stdio::piped() } else { Stdio::inherit() })
         .spawn()
         .map_err(|err| {
             if err.kind() == std::io::ErrorKind::NotFound {
